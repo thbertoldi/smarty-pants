@@ -1,0 +1,11 @@
+---
+source: crates/daemon/src/prompt.rs
+expression: out
+---
+<start_of_turn>user
+Rewrite in different words. Same meaning. Same language.
+
+---
+
+The quick brown fox jumps over the lazy dog.<end_of_turn>
+<start_of_turn>model
