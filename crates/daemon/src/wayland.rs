@@ -20,7 +20,7 @@ pub trait Wayland: Send + Sync + 'static {
 }
 
 // ── in-memory mock for unit tests ─────────────────────────────────────
-#[cfg(any(test, feature = "live-model"))]
+#[doc(hidden)]
 pub mod mock {
     use super::*;
     use std::sync::Mutex;
