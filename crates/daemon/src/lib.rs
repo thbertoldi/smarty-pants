@@ -6,3 +6,4 @@ pub mod llm;
 pub mod model_download;
 pub mod pipeline;
 pub mod server;
+pub mod shortcuts;
