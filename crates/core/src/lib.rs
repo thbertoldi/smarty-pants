@@ -4,3 +4,4 @@
 //! and the few path/config helpers both binaries need.
 
 pub mod paths;
+pub mod protocol;
