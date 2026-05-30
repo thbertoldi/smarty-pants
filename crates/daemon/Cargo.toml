@@ -11,11 +11,10 @@ name = "smarty-pants-daemon"
 path = "src/main.rs"
 
 [features]
-default     = []
-vulkan      = []
-cuda        = []
-rocm        = []
-live-model  = []
+# Vulkan is the default acceleration backend, declared empty here until
+# T12 wires llama-cpp-2 in and gives it the real feature dependency.
+default    = []
+live-model = []
 
 [dependencies]
 smarty-pants-core   = { path = "../core" }
@@ -30,11 +29,6 @@ tokio-util          = { workspace = true }
 futures             = { workspace = true }
 async-trait         = { workspace = true }
 directories         = { workspace = true }
-
-# llama-cpp-2 requires libclang; will be added when Task 12 starts
-# llama-cpp-2         = { version = "0.1", default-features = false }
-# wl-clipboard-rs     = "0.9"
-# ashpd               = { version = "0.13", default-features = false, features = ["tokio", "global_shortcuts"] }
 
 reqwest             = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 sha2                = "0.10"
