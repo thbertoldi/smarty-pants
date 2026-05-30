@@ -1,0 +1,19 @@
+[package]
+name         = "smarty-pants-core"
+version.workspace      = true
+edition.workspace      = true
+license.workspace      = true
+repository.workspace   = true
+rust-version.workspace = true
+
+[lib]
+name = "smarty_pants_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+toml        = { workspace = true }
+directories = { workspace = true }
+thiserror   = { workspace = true }
+anyhow      = { workspace = true }
