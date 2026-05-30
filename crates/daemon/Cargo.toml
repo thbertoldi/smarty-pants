@@ -6,6 +6,10 @@ license.workspace      = true
 repository.workspace   = true
 rust-version.workspace = true
 
+[lib]
+name = "smarty_pants_daemon"
+path = "src/lib.rs"
+
 [[bin]]
 name = "smarty-pants-daemon"
 path = "src/main.rs"
