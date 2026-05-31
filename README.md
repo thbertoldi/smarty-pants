@@ -117,7 +117,7 @@ journalctl --user -u smarty-pants -f
 
 1. Highlight some text in any window (the **primary selection** — i.e. just mouse-highlighting is enough; you don't need to `Ctrl+C` it).
 2. Keep focus on the target window where the rewrite should land.
-3. Press the hotkey for the mode you want (`Super+R` / `Super+Shift+L` / `Super+A`).
+3. Press the hotkey for the mode you want (`Super+R` for general rewrite, `Super+A` for academic, `Super+I` for LinkedIn).
 4. After a brief wait — typically 0.5–2 s once the model is warm; up to ~10 s on the first call after daemon start because llama.cpp builds the inference context — the highlighted text is replaced in place with the improved version.
 
 The paraphrase also lands on your system clipboard, so if focus shifted during the wait you can manually `Ctrl+Shift+V` (terminal) / `Ctrl+V` (GUI) to paste it wherever you actually meant.
@@ -165,4 +165,4 @@ pkill smarty-pants-daemon            # universal stop
 
 ## License
 
-Apache-2.0.
+[MPL-2.0](LICENSE).
