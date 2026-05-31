@@ -53,8 +53,10 @@ The daemon registers three shortcut ids with the portal:
 | Shortcut id                  | Mode                          | Suggested key combo |
 | ---------------------------- | ----------------------------- | ------------------- |
 | `surface-transient:rewrite`  | general grammar / fluency fix | `Super+R`           |
-| `surface-transient:linkedin` | LinkedIn voice                | `Super+Shift+L`     |
 | `surface-transient:academic` | academic voice                | `Super+A`           |
+| `surface-transient:linkedin` | LinkedIn voice                | `Super+I`           |
+
+(`Super+Shift+L` is a common `movewindow` bind in stock Hyprland configs, hence `Super+I` for LinkedIn — pick whatever you have free.)
 
 Verify with:
 
@@ -65,9 +67,9 @@ hyprctl globalshortcuts
 Hyprland's portal doesn't have a GUI for binding shortcuts — you write `bind = …, global, <id>` lines in your compositor config. Add to `~/.config/hypr/hyprland.conf` (or wherever your binds live):
 
 ```
-bind = SUPER,       R, global, surface-transient:rewrite
-bind = SUPER SHIFT, L, global, surface-transient:linkedin
-bind = SUPER,       A, global, surface-transient:academic
+bind = SUPER, R, global, surface-transient:rewrite
+bind = SUPER, A, global, surface-transient:academic
+bind = SUPER, I, global, surface-transient:linkedin
 ```
 
 Then reload:
@@ -83,17 +85,17 @@ Bind each mode to a different hotkey that runs `smarty-pants trigger --mode <nam
 ```kdl
 # ~/.config/niri/config.kdl
 binds {
-    Mod+R       { spawn "smarty-pants" "trigger" "--mode" "rewrite"; }
-    Mod+Shift+L { spawn "smarty-pants" "trigger" "--mode" "linkedin"; }
-    Mod+A       { spawn "smarty-pants" "trigger" "--mode" "academic"; }
+    Mod+R { spawn "smarty-pants" "trigger" "--mode" "rewrite"; }
+    Mod+A { spawn "smarty-pants" "trigger" "--mode" "academic"; }
+    Mod+I { spawn "smarty-pants" "trigger" "--mode" "linkedin"; }
 }
 ```
 
 ```
 # ~/.config/sway/config
-bindsym $mod+R       exec smarty-pants trigger --mode rewrite
-bindsym $mod+Shift+L exec smarty-pants trigger --mode linkedin
-bindsym $mod+A       exec smarty-pants trigger --mode academic
+bindsym $mod+R exec smarty-pants trigger --mode rewrite
+bindsym $mod+A exec smarty-pants trigger --mode academic
+bindsym $mod+I exec smarty-pants trigger --mode linkedin
 ```
 
 ## Auto-start at login (systemd user unit)
