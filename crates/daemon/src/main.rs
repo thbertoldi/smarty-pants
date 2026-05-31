@@ -31,21 +31,45 @@ async fn main() -> anyhow::Result<()> {
         Config::default()
     };
 
-    // Phase 1: ensure the `rewrite` mode is always defined. If the user's
-    // config doesn't declare it, inject the built-in default so the daemon
-    // always has at least one shortcut to bind and one mode to run.
-    if !cfg.modes.contains_key("rewrite") {
-        cfg.modes.insert(
-            "rewrite".into(),
-            smarty_pants_core::config::ModeCfg {
-                system: include_str!("../../../examples/rewrite_prompt.txt").to_owned(),
-                shortcut: Some("SUPER+SHIFT+P".to_owned()),
-                description: Some("Paraphrase: rewrite in different words".to_owned()),
-                temperature: None,
-                top_p: None,
-                max_tokens: None,
-            },
-        );
+    // Inject the three built-in modes for any name the user's config
+    // doesn't already define. Each mode registers as a separate portal
+    // shortcut; the user binds them in hyprland.conf via the `global`
+    // dispatcher (e.g. `bind = SUPER, R, global, surface-transient:rewrite`).
+    type ModeDefaults = (&'static str, &'static str, &'static str, &'static str);
+    const DEFAULT_MODES: &[ModeDefaults] = &[
+        (
+            "rewrite",
+            "SUPER+R",
+            "Improve: grammar and fluency",
+            include_str!("../../../examples/prompts/rewrite.txt"),
+        ),
+        (
+            "linkedin",
+            "SUPER+SHIFT+L",
+            "Improve: LinkedIn voice",
+            include_str!("../../../examples/prompts/linkedin.txt"),
+        ),
+        (
+            "academic",
+            "SUPER+A",
+            "Improve: academic voice",
+            include_str!("../../../examples/prompts/academic.txt"),
+        ),
+    ];
+    for (name, shortcut, description, system) in DEFAULT_MODES {
+        if !cfg.modes.contains_key(*name) {
+            cfg.modes.insert(
+                (*name).into(),
+                smarty_pants_core::config::ModeCfg {
+                    system: (*system).to_owned(),
+                    shortcut: Some((*shortcut).to_owned()),
+                    description: Some((*description).to_owned()),
+                    temperature: None,
+                    top_p: None,
+                    max_tokens: None,
+                },
+            );
+        }
     }
     let cfg = Arc::new(cfg);
 

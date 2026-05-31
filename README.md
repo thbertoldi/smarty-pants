@@ -1,92 +1,165 @@
 # smarty-pants
 
-Local AI paraphraser for Wayland. Highlight text in any app, press a hotkey, get it rewritten in place — no cloud, no telemetry.
+Local AI writing assistant for Wayland. Highlight text in any app, press a hotkey, get it rewritten in place — no cloud, no telemetry. Three modes ship by default: **general** grammar/fluency fix, **LinkedIn** voice, and **academic** voice.
 
-## Status
+Runs as a long-lived daemon that keeps a Qwen 2.5 7B Instruct model resident in GPU VRAM and serves paraphrase requests both via the XDG GlobalShortcuts portal (Hyprland) and via a Unix-socket CLI (niri / Sway / anything else with `bindsym`-style hotkeys).
 
-Phase 1 (MVP, work in progress). Supports Hyprland (XDG GlobalShortcuts portal) and niri / Sway (compositor-config hotkey + CLI trigger). Single `rewrite` mode. Gemma 3 1B Q4 model auto-downloaded on first run.
+## Requirements
 
-The daemon's real LLM wiring (`LlamaLlm` + main loop) requires `clang` and `glslang-devel` and will be enabled once those system deps are installed. Until then the daemon binary is a placeholder; all other layers (workspace, core, daemon library, CLI, E2E socket test with the EchoLlm stub) are complete and passing.
+Hardware: a Vulkan-capable GPU with ≥ 6 GB VRAM. Tested on NVIDIA RTX 1000 Ada (6 GB). Should work on Intel Arc, recent AMD, etc. Falls back to CPU automatically if no GPU is detected (slow but functional).
 
-## Build
-
-You need:
-
-- Rust ≥ 1.75 (stable)
-- `cmake`, `clang`, `pkg-config`
-- Vulkan loader + headers: `vulkan-loader`, `vulkan-headers`, `glslang`
-- `wtype` and `wl-clipboard` at runtime
-
-On openSUSE Tumbleweed:
+Software (openSUSE Tumbleweed package names):
 
 ```sh
-sudo zypper install cmake clang pkg-config vulkan-headers libvulkan1 glslang-devel wtype wl-clipboard
+sudo zypper install \
+    cmake clang libclang13 \
+    vulkan-headers libvulkan1 glslang-devel shaderc \
+    wtype wl-clipboard \
+    xdg-desktop-portal-hyprland   # only for Hyprland
 ```
 
-Then:
+The build is heavy because `llama-cpp-2` compiles llama.cpp from source with the Vulkan backend (~3–5 minutes the first time).
+
+## Build & install
 
 ```sh
+git clone <this-repo> smarty-pants && cd smarty-pants
 cargo install --path crates/cli    --locked
 cargo install --path crates/daemon --locked
 ```
 
-## Configure
+`smarty-pants` (CLI, sub-100 ms cold start) and `smarty-pants-daemon` (long-lived) both land in `~/.cargo/bin/`. Make sure that's on your PATH:
 
-Optional. Defaults work for the `rewrite` mode. To customize, copy `examples/config.toml` to `~/.config/smarty-pants/config.toml` and edit.
-
-## Run
-
-```sh
-smarty-pants daemon start
+```fish
+fish_add_path ~/.cargo/bin
 ```
 
-On first start the daemon downloads the Gemma 3 1B Q4 model (~800 MB) to `~/.local/share/smarty-pants/models/` and verifies SHA-256.
+## First run
+
+```sh
+smarty-pants-daemon
+```
+
+On first start the daemon downloads the Qwen 2.5 7B Instruct Q4_K_M GGUF (~4.4 GB) to `~/.local/share/smarty-pants/models/` and SHA-256 verifies it. Subsequent starts skip the download.
+
+Watch for the line `portal shortcuts bound count=3` — that's the signal the GlobalShortcuts portal accepted the three mode registrations.
+
+## Configure shortcuts
 
 ### Hyprland
 
-The daemon registers a portal shortcut named `rewrite` at startup. Open Hyprland's shortcut settings UI (Settings → Keyboard → App shortcuts) and bind it to whatever key combo you like (suggested default: `SUPER+SHIFT+P`).
+The daemon registers three shortcut ids with the portal:
 
-### niri
+| Shortcut id                  | Mode                          | Suggested key combo |
+| ---------------------------- | ----------------------------- | ------------------- |
+| `surface-transient:rewrite`  | general grammar / fluency fix | `Super+R`           |
+| `surface-transient:linkedin` | LinkedIn voice                | `Super+Shift+L`     |
+| `surface-transient:academic` | academic voice                | `Super+A`           |
 
-Add to `~/.config/niri/config.kdl`:
+Verify with:
+
+```sh
+hyprctl globalshortcuts
+```
+
+Hyprland's portal doesn't have a GUI for binding shortcuts — you write `bind = …, global, <id>` lines in your compositor config. Add to `~/.config/hypr/hyprland.conf` (or wherever your binds live):
+
+```
+bind = SUPER,       R, global, surface-transient:rewrite
+bind = SUPER SHIFT, L, global, surface-transient:linkedin
+bind = SUPER,       A, global, surface-transient:academic
+```
+
+Then reload:
+
+```sh
+hyprctl reload
+```
+
+### niri / Sway / others
+
+Bind each mode to a different hotkey that runs `smarty-pants trigger --mode <name>`:
 
 ```kdl
+# ~/.config/niri/config.kdl
 binds {
-    Mod+Shift+P { spawn "smarty-pants" "trigger" "--mode" "rewrite"; }
+    Mod+R       { spawn "smarty-pants" "trigger" "--mode" "rewrite"; }
+    Mod+Shift+L { spawn "smarty-pants" "trigger" "--mode" "linkedin"; }
+    Mod+A       { spawn "smarty-pants" "trigger" "--mode" "academic"; }
 }
 ```
 
-### Sway
-
-Add to `~/.config/sway/config`:
-
 ```
-bindsym $mod+Shift+p exec smarty-pants trigger --mode rewrite
+# ~/.config/sway/config
+bindsym $mod+R       exec smarty-pants trigger --mode rewrite
+bindsym $mod+Shift+L exec smarty-pants trigger --mode linkedin
+bindsym $mod+A       exec smarty-pants trigger --mode academic
 ```
 
-Reload your compositor. Highlight text, press the hotkey.
-
-## Status check
+## Auto-start at login (systemd user unit)
 
 ```sh
-smarty-pants status
+mkdir -p ~/.config/systemd/user
+cp packaging/systemd/smarty-pants.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now smarty-pants.service
 ```
 
-## Stop
+Inspect logs with:
 
 ```sh
-smarty-pants daemon stop
-# or
-pkill smarty-pants-daemon
+journalctl --user -u smarty-pants -f
 ```
 
-## Tests
+## Usage
+
+1. Highlight some text in any window (the **primary selection** — i.e. just mouse-highlighting is enough; you don't need to `Ctrl+C` it).
+2. Keep focus on the target window where the rewrite should land.
+3. Press the hotkey for the mode you want (`Super+R` / `Super+Shift+L` / `Super+A`).
+4. After a brief wait — typically 0.5–2 s once the model is warm; up to ~10 s on the first call after daemon start because llama.cpp builds the inference context — the highlighted text is replaced in place with the improved version.
+
+The paraphrase also lands on your system clipboard, so if focus shifted during the wait you can manually `Ctrl+Shift+V` (terminal) / `Ctrl+V` (GUI) to paste it wherever you actually meant.
+
+The daemon auto-detects terminal windows (Ghostty, kitty, foot, Alacritty, WezTerm, gnome-terminal, Konsole, …) and uses `Ctrl+Shift+V` for them; everything else gets `Ctrl+V`.
+
+## Customize
+
+Optional config at `~/.config/smarty-pants/config.toml`. Defaults are sensible; override anything you don't like:
+
+```toml
+[model]
+gpu_layers = -1     # -1 = offload all if GPU present, 0 = force CPU
+temperature = 0.7
+
+[inject]
+restore_clipboard = false   # default; set to true to keep your prior clipboard
+paste_settle_ms   = 200     # bump higher if TUIs swallow the paste
+
+[modes.rewrite]
+# Override the built-in rewrite prompt
+system = """
+… your own prompt …
+"""
+shortcut = "SUPER+R"
+description = "My custom mode"
+```
+
+## Status & lifecycle
 
 ```sh
-cargo test --workspace
+smarty-pants status                  # is the daemon up?
+smarty-pants daemon start            # spawn detached daemon
+smarty-pants daemon stop             # send shutdown via socket (Phase 2: clean exit)
+pkill smarty-pants-daemon            # universal stop
 ```
 
-32 tests covering core types, config parsing, the daemon pipeline with mocked Wayland + a stub LLM, and end-to-end Unix-socket round-trip.
+## Known limitations
+
+- **First paraphrase after daemon start is slow** (~7–10 s). llama.cpp rebuilds the per-call context every time. Phase 2 will hoist the context across calls and drop typical latency to sub-second.
+- **TUI applications inside terminals (Claude Code, helix, lazygit, …) sometimes swallow synthesized paste.** Workaround is built-in: the paraphrase stays on the clipboard, so you can manually paste with `Ctrl+Shift+V`.
+- **Qwen's safety filter is mild but not zero.** Inputs with explicit profanity occasionally trigger a refusal instead of a rewrite. Swap to another GGUF by editing `crates/daemon/src/model_download.rs` and recompiling.
+- **Hyprland's portal-shortcut id namespace is `surface-transient`** — that's xdg-desktop-portal-hyprland's fallback when an app doesn't pass a `WindowIdentifier`. Cosmetic; functional.
+- **Only tested on Hyprland + wlroots-family compositors.** KDE Plasma 6 has portal support but uses different paste-chain quirks (Phase 3).
 
 ## License
 

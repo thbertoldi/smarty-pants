@@ -1,0 +1,32 @@
+[Unit]
+Description=smarty-pants — local AI paraphraser daemon
+Documentation=https://github.com/thbertoldi/smarty-pants
+# Start after the graphical session is available so the GlobalShortcuts
+# portal and the user's Wayland socket exist.
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+# %h expands to the user's home directory at unit-load time.
+ExecStart=%h/.cargo/bin/smarty-pants-daemon
+
+# Restart on crash (not on normal exit / SIGTERM).
+Restart=on-failure
+RestartSec=5
+
+# Log to the journal. Tail with: journalctl --user -u smarty-pants -f
+StandardOutput=journal
+StandardError=journal
+
+# Tracing filter — bump to debug if you're diagnosing.
+Environment=RUST_LOG=info,smarty_pants=info
+
+# Reasonable resource limits. The Qwen 2.5 7B Q4 model needs ~5 GB RAM
+# (model weights) + ~1 GB compute + KV buffers. CPUSchedulingPriority
+# keeps it from monopolizing the CPU if it spikes.
+MemoryMax=10G
+Nice=5
+
+[Install]
+WantedBy=graphical-session.target
