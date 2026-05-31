@@ -66,7 +66,7 @@ fn pipeline_mode_count(_p: &Pipeline) -> usize { 1 }
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{llm::EchoLlm, wayland::mock::MockWayland};
+    use crate::{llm::EchoLlm, prompt::Template, wayland::mock::MockWayland};
     use smarty_pants_core::config::{Config, ModeCfg};
     use tempfile::TempDir;
     use tokio::io::AsyncReadExt;

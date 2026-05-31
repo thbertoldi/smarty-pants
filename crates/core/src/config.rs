@@ -97,7 +97,19 @@ pub struct InjectCfg {
     pub paste_settle_ms:   u64,
 }
 impl Default for InjectCfg {
-    fn default() -> Self { Self { restore_clipboard: true, paste_settle_ms: 80 } }
+    fn default() -> Self {
+        // restore_clipboard: false by default because terminal-hosted TUIs
+        // (Claude Code, helix, lazygit, ...) buffer the bracketed-paste
+        // sequence and read the system clipboard with extra latency. If we
+        // restore the prior clipboard 80ms after firing Ctrl+Shift+V, the
+        // TUI sometimes reads the prior content instead of the paraphrase.
+        // Leaving the paraphrase on the clipboard is also a reasonable UX:
+        // it matches what a manual paste would have done.
+        //
+        // paste_settle_ms: 200ms is a generous-but-not-annoying window for
+        // any focused app to consume the clipboard before we touch it again.
+        Self { restore_clipboard: false, paste_settle_ms: 200 }
+    }
 }
 
 /// A paraphrase mode definition. The `system` prompt is required; all other

@@ -88,7 +88,7 @@ pub async fn run_session(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{llm::EchoLlm, wayland::{mock::MockWayland, Wayland}};
+    use crate::{llm::EchoLlm, prompt::Template, wayland::{mock::MockWayland, Wayland}};
     use smarty_pants_core::config::{Config, ModeCfg};
 
     #[tokio::test]
