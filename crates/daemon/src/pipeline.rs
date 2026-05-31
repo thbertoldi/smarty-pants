@@ -8,6 +8,19 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::Mutex;
 
+/// Single-line preview of a string for log output. Replaces newlines with
+/// spaces and caps length so logs stay readable.
+fn preview(s: &str) -> String {
+    const MAX: usize = 200;
+    let one_line: String = s.chars().map(|c| if c == '\n' { ' ' } else { c }).collect();
+    if one_line.chars().count() <= MAX {
+        one_line
+    } else {
+        let head: String = one_line.chars().take(MAX).collect();
+        format!("{head}…")
+    }
+}
+
 pub struct Pipeline {
     wl:       Arc<dyn Wayland>,
     llm:      Arc<dyn Llm>,
@@ -50,6 +63,11 @@ impl Pipeline {
         .await
         .map_err(|e| (ErrorKind::Capture, e.to_string()))?;
         let Some(captured) = captured else { return Ok(None) };
+        tracing::info!(
+            chars = captured.text.chars().count(),
+            preview = %preview(&captured.text),
+            "captured selection"
+        );
 
         let prompt = prompt::render(Template::Gemma, &mode.system, &captured.text);
         let params = GenerationParams {
@@ -60,6 +78,11 @@ impl Pipeline {
         };
         let generated = self.llm.generate(&prompt, &params).await
             .map_err(|e| (ErrorKind::Inference, e.to_string()))?;
+        tracing::info!(
+            chars = generated.chars().count(),
+            preview = %preview(&generated),
+            "llm generated"
+        );
 
         inject::write(
             self.wl.clone(),

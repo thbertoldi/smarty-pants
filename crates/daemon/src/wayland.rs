@@ -168,28 +168,64 @@ pub mod real {
         }
 
         async fn type_combo(&self, combo: &str) -> anyhow::Result<()> {
-            // combo formatted as "ctrl+v" or "ctrl+c"
+            // combo formatted as "ctrl+v" or "ctrl+c".
             //
-            // wtype invocation: `wtype -M <mod> ... -k <KEY>`
+            // On Hyprland we prefer `hyprctl dispatch sendshortcut`, which uses
+            // the compositor's own input synthesis pipeline. wtype's
+            // virtual-keyboard protocol path silently no-ops on at least some
+            // Hyprland versions (observed on Hyprland 0.52.x with wtype 0.4) —
+            // the keysym never reaches the focused app. Hyprland's
+            // sendshortcut is the same mechanism Hyprland uses for its own
+            // `bind = …, sendshortcut, …` declarations, so it's the most
+            // reliable synthesis path inside a Hyprland session.
             //
-            // `-k` synthesizes a key event (XKB keysym), which apps treat as
-            // a keyboard shortcut. A bare argument (e.g. just `v`) types the
-            // letter as text input — under a held modifier, most apps either
-            // ignore it or insert the literal character instead of firing
-            // the shortcut. Modifiers held via `-M` are released automatically
-            // when wtype exits, so an explicit `-m` is unnecessary.
-            //
-            // Matches Handy's invocation in src-tauri/src/clipboard.rs
-            // (`send_key_combo_via_wtype` — `-M ctrl -k v` for Ctrl+V).
+            // Off Hyprland we fall back to wtype's `-M <mod> -k <KEY>` form
+            // (matching Handy's invocation in src-tauri/src/clipboard.rs).
             let parts: Vec<&str> = combo.split('+').collect();
             let (mods, key): (Vec<&str>, &str) = match parts.split_last() {
                 Some((last, rest)) => (rest.to_vec(), *last),
                 None => return Err(anyhow::anyhow!("empty combo")),
             };
-            // For named single-letter keys ("v", "c"), wtype's -k accepts the
-            // letter directly as XK_v / XK_c. For function/special keys the
-            // caller would pass "Return", "Insert", etc. — wtype's -k accepts
-            // the X11 keysym name.
+
+            if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some() {
+                // Format: `hyprctl dispatch sendshortcut "MODS, KEY,"`
+                // MODS is space-separated uppercase ("CTRL", "CTRL SHIFT").
+                // Key is the X11 keysym name; uppercase letter is the
+                // convention Hyprland uses elsewhere.
+                let mods_arg = mods
+                    .iter()
+                    .map(|m| m.to_ascii_uppercase())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let key_arg = key.to_ascii_uppercase();
+                let arg = format!("{mods_arg}, {key_arg},");
+                tracing::info!(arg = %arg, "synth via hyprctl dispatch sendshortcut");
+                let output = Command::new("hyprctl")
+                    .args(["dispatch", "sendshortcut", &arg])
+                    .output()
+                    .await
+                    .map_err(|e| anyhow::anyhow!("spawn hyprctl: {e}"))?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    return Err(anyhow::anyhow!(
+                        "hyprctl dispatch sendshortcut exited {} stderr={stderr}",
+                        output.status
+                    ));
+                }
+                // hyprctl prints "ok" on success and a non-"ok" body on
+                // failure even when exit status is 0 — defensive check.
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if !stdout.trim().starts_with("ok") {
+                    return Err(anyhow::anyhow!(
+                        "hyprctl dispatch sendshortcut returned: {}",
+                        stdout.trim()
+                    ));
+                }
+                return Ok(());
+            }
+
+            // Non-Hyprland fallback: wtype with `-M MOD -k KEY` form.
+            tracing::info!(combo = %combo, "synth via wtype");
             let mut cmd = Command::new("wtype");
             for m in &mods {
                 cmd.arg("-M").arg(m);
