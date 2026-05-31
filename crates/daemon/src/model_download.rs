@@ -11,6 +11,7 @@ pub struct ModelSpec {
     pub key:    &'static str,
     pub url:    &'static str,
     pub sha256: &'static str, // hex lowercase
+    #[allow(dead_code)] // Phase 2: progress reporting
     pub size:   u64,
 }
 
