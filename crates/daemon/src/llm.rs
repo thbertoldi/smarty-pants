@@ -44,19 +44,6 @@ impl Llm for EchoLlm {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn echo_stub_returns_predictable_string() {
-        let llm = EchoLlm;
-        let prompt = "<start_of_turn>user\nrewrite this.\n\n---\n\nhello world<end_of_turn>\n<start_of_turn>model\n";
-        let out = llm.generate(prompt, &GenerationParams::default()).await.unwrap();
-        assert_eq!(out, "[paraphrased] hello world");
-    }
-}
-
 // ── real llama-cpp-2 backed implementation ─────────────────────────────
 
 use llama_cpp_2::{
@@ -212,4 +199,17 @@ fn rand_seed() -> u32 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.subsec_nanos())
         .unwrap_or(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn echo_stub_returns_predictable_string() {
+        let llm = EchoLlm;
+        let prompt = "<start_of_turn>user\nrewrite this.\n\n---\n\nhello world<end_of_turn>\n<start_of_turn>model\n";
+        let out = llm.generate(prompt, &GenerationParams::default()).await.unwrap();
+        assert_eq!(out, "[paraphrased] hello world");
+    }
 }
