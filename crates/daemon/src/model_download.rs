@@ -18,10 +18,9 @@ pub struct ModelSpec {
 pub const GEMMA_3_1B_IT_Q4_K_M: ModelSpec = ModelSpec {
     key:    "gemma-3-1b-it-q4_k_m",
     url:    "https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf",
-    // PLACEHOLDER — replace with real SHA-256 at deploy time. The user will
-    // pin the value once the model artifact is fetched the first time.
-    sha256: "0000000000000000000000000000000000000000000000000000000000000000",
-    size:   806_000_000,
+    // Pinned 2026-05-31 from a fresh download of the URL above.
+    sha256: "8270790f3ab69fdfe860b7b64008d9a19986d8df7e407bb018184caa08798ebd",
+    size:   806_058_272,
 };
 
 pub async fn ensure_model(
