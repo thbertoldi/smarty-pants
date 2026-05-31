@@ -396,7 +396,9 @@ pub enum Response {
     Busy,
     ModelLoading,
     Status { healthy: bool, model_loaded: bool, mode_count: usize },
-    Error { kind: ErrorKind, message: String },
+    // `error_kind` (not `kind`) because the enum tag above is `kind` — a
+    // field named `kind` would collide with the tag at the wire layer.
+    Error { error_kind: ErrorKind, message: String },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -805,7 +807,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod wayland;
@@ -941,7 +943,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod selection;
@@ -1053,7 +1055,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod inject;
@@ -1229,7 +1231,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod prompt;
@@ -1318,7 +1320,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod llm;
@@ -1446,7 +1448,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod model_download;
@@ -1830,7 +1832,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod pipeline;
@@ -1964,7 +1966,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod server;
@@ -2103,7 +2105,7 @@ mod tests {
 }
 ```
 
-Add to `crates/daemon/src/main.rs`:
+Add to `crates/daemon/src/lib.rs` (daemon modules live in the lib so `cargo test --lib` picks them up; main.rs is just the entry point):
 
 ```rust
 mod shortcuts;
@@ -2392,7 +2394,7 @@ pub async fn run(mode: &str) -> anyhow::Result<()> {
         Response::Busy         => { eprintln!("daemon busy"); std::process::exit(4) }
         Response::ModelLoading => { eprintln!("model loading"); std::process::exit(5) }
         Response::Status { .. } => unreachable!("trigger sent paraphrase, got Status"),
-        Response::Error { kind, message } => {
+        Response::Error { error_kind, message } => {
             eprintln!("error ({kind:?}): {message}");
             std::process::exit(1)
         }
