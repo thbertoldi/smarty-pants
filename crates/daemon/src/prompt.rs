@@ -10,10 +10,13 @@ pub fn render(template: Template, system: &str, user: &str) -> String {
 }
 
 /// Gemma 2/3 chat template — no system role, so we inject the system
-/// instructions as the leading user turn, then the actual user content.
+/// instructions and the user text together as a single user turn. The
+/// user's text is wrapped in `<input>...</input>` tags so the model
+/// reliably treats it as opaque content (instruction-injection guard)
+/// rather than as a request directed at the assistant.
 fn render_gemma(system: &str, user: &str) -> String {
     format!(
-        "<start_of_turn>user\n{system}\n\n---\n\n{user}<end_of_turn>\n<start_of_turn>model\n",
+        "<start_of_turn>user\n{system}\n\n<input>\n{user}\n</input><end_of_turn>\n<start_of_turn>model\n",
         system = system.trim(),
         user   = user.trim()
     )

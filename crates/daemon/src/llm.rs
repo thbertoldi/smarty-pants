@@ -32,14 +32,15 @@ pub struct EchoLlm;
 #[async_trait]
 impl Llm for EchoLlm {
     async fn generate(&self, prompt: &str, _: &GenerationParams) -> anyhow::Result<String> {
-        // Extract the last user-turn content for a predictable transformation.
-        // Tests only need a deterministic output, not a real paraphrase.
+        // Extract the user text from inside <input>...</input> for a
+        // predictable transformation. Tests only need a deterministic
+        // output that proves the chain ran end-to-end with the right
+        // user content reaching the LLM, not a real paraphrase.
         let tail = prompt
-            .rsplit("---\n\n")
-            .next()
-            .and_then(|s| s.strip_suffix("<end_of_turn>\n<start_of_turn>model\n"))
-            .unwrap_or(prompt)
-            .trim();
+            .rsplit_once("<input>\n")
+            .and_then(|(_, after)| after.rsplit_once("\n</input>"))
+            .map(|(inside, _)| inside.trim())
+            .unwrap_or_else(|| prompt.trim());
         Ok(format!("[paraphrased] {tail}"))
     }
 }
@@ -208,7 +209,7 @@ mod tests {
     #[tokio::test]
     async fn echo_stub_returns_predictable_string() {
         let llm = EchoLlm;
-        let prompt = "<start_of_turn>user\nrewrite this.\n\n---\n\nhello world<end_of_turn>\n<start_of_turn>model\n";
+        let prompt = "<start_of_turn>user\nrewrite this.\n\n<input>\nhello world\n</input><end_of_turn>\n<start_of_turn>model\n";
         let out = llm.generate(prompt, &GenerationParams::default()).await.unwrap();
         assert_eq!(out, "[paraphrased] hello world");
     }
