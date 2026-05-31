@@ -8,6 +8,8 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::Mutex;
 
+
+
 /// Single-line preview of a string for log output. Replaces newlines with
 /// spaces and caps length so logs stay readable.
 fn preview(s: &str) -> String {
@@ -25,12 +27,18 @@ pub struct Pipeline {
     wl:       Arc<dyn Wayland>,
     llm:      Arc<dyn Llm>,
     cfg:      Arc<Config>,
+    template: Template,
     inflight: Mutex<()>,
 }
 
 impl Pipeline {
-    pub fn new(wl: Arc<dyn Wayland>, llm: Arc<dyn Llm>, cfg: Arc<Config>) -> Self {
-        Self { wl, llm, cfg, inflight: Mutex::new(()) }
+    pub fn new(
+        wl:       Arc<dyn Wayland>,
+        llm:      Arc<dyn Llm>,
+        cfg:      Arc<Config>,
+        template: Template,
+    ) -> Self {
+        Self { wl, llm, cfg, template, inflight: Mutex::new(()) }
     }
 
     pub async fn run(&self, mode_name: &str) -> Response {
@@ -69,7 +77,7 @@ impl Pipeline {
             "captured selection"
         );
 
-        let prompt = prompt::render(Template::Gemma, &mode.system, &captured.text);
+        let prompt = prompt::render(self.template, &mode.system, &captured.text);
         let params = GenerationParams {
             max_tokens:  mode.max_tokens.unwrap_or(self.cfg.model.max_tokens),
             temperature: mode.temperature.unwrap_or(self.cfg.model.temperature),
@@ -120,7 +128,7 @@ mod tests {
     async fn happy_path_returns_ok_and_pastes() {
         let wl = Arc::new(MockWayland::new());
         wl.set_primary(Some("Hello world."));
-        let pipe = Pipeline::new(wl.clone(), Arc::new(EchoLlm), cfg_with_mode());
+        let pipe = Pipeline::new(wl.clone(), Arc::new(EchoLlm), cfg_with_mode(), Template::Gemma);
 
         let resp = pipe.run("rewrite").await;
         match resp {
@@ -135,7 +143,7 @@ mod tests {
     #[tokio::test]
     async fn empty_selection_returns_empty() {
         let wl = Arc::new(MockWayland::new());
-        let pipe = Pipeline::new(wl, Arc::new(EchoLlm), cfg_with_mode());
+        let pipe = Pipeline::new(wl, Arc::new(EchoLlm), cfg_with_mode(), Template::Gemma);
         assert!(matches!(pipe.run("rewrite").await, Response::Empty));
     }
 
@@ -143,7 +151,7 @@ mod tests {
     async fn unknown_mode_returns_internal_error() {
         let wl = Arc::new(MockWayland::new());
         wl.set_primary(Some("x"));
-        let pipe = Pipeline::new(wl, Arc::new(EchoLlm), cfg_with_mode());
+        let pipe = Pipeline::new(wl, Arc::new(EchoLlm), cfg_with_mode(), Template::Gemma);
         let resp = pipe.run("nope").await;
         assert!(matches!(resp, Response::Error { error_kind: ErrorKind::Internal, .. }));
     }
@@ -161,7 +169,7 @@ mod tests {
         }
         let wl = Arc::new(MockWayland::new());
         wl.set_primary(Some("x"));
-        let pipe = Arc::new(Pipeline::new(wl, Arc::new(SlowLlm), cfg_with_mode()));
+        let pipe = Arc::new(Pipeline::new(wl, Arc::new(SlowLlm), cfg_with_mode(), Template::Gemma));
         let a = tokio::spawn({ let p = pipe.clone(); async move { p.run("rewrite").await } });
         tokio::time::sleep(Duration::from_millis(5)).await;
         let b = pipe.run("rewrite").await;

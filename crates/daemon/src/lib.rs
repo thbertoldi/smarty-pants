@@ -16,7 +16,10 @@ pub mod shortcuts;
 /// the public-facing docs.
 #[doc(hidden)]
 pub mod testing {
-    use crate::{llm::EchoLlm, pipeline::Pipeline, server::Server, wayland::mock::MockWayland};
+    use crate::{
+        llm::EchoLlm, pipeline::Pipeline, prompt::Template, server::Server,
+        wayland::mock::MockWayland,
+    };
     use smarty_pants_core::config::{Config, ModeCfg};
     use std::path::Path;
     use std::sync::Arc;
@@ -36,7 +39,7 @@ pub mod testing {
             shortcut: None, description: None,
             temperature: None, top_p: None, max_tokens: None,
         });
-        let pipe = Arc::new(Pipeline::new(wl.clone(), Arc::new(EchoLlm), Arc::new(cfg)));
+        let pipe = Arc::new(Pipeline::new(wl.clone(), Arc::new(EchoLlm), Arc::new(cfg), Template::Gemma));
         let server = Server::bind(socket, pipe).expect("bind");
         let handle = tokio::spawn(async move { let _ = server.serve().await; });
         (handle, wl)

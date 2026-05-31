@@ -101,7 +101,7 @@ mod tests {
             shortcut: None, description: None,
             temperature: None, top_p: None, max_tokens: None,
         });
-        let pipe = Arc::new(Pipeline::new(wl.clone(), Arc::new(EchoLlm), Arc::new(cfg)));
+        let pipe = Arc::new(Pipeline::new(wl.clone(), Arc::new(EchoLlm), Arc::new(cfg), Template::Gemma));
         let d = Dispatcher::new(pipe);
         d.handle_activation("rewrite").await;
         let v = wl.read(crate::wayland::ClipboardKind::Regular).await.unwrap();

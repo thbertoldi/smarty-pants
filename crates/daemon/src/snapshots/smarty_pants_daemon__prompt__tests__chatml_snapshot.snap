@@ -1,0 +1,11 @@
+---
+source: crates/daemon/src/prompt.rs
+expression: out
+---
+<|im_start|>system
+Rewrite in different words. Same meaning. Same language.<|im_end|>
+<|im_start|>user
+<input>
+The quick brown fox jumps over the lazy dog.
+</input><|im_end|>
+<|im_start|>assistant

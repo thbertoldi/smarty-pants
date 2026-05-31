@@ -84,7 +84,7 @@ mod tests {
             shortcut: None, description: None,
             temperature: None, top_p: None, max_tokens: None,
         });
-        let pipe = Arc::new(Pipeline::new(wl, Arc::new(EchoLlm), Arc::new(cfg)));
+        let pipe = Arc::new(Pipeline::new(wl, Arc::new(EchoLlm), Arc::new(cfg), Template::Gemma));
         let server = Server::bind(&sock, pipe).unwrap();
         let h = tokio::spawn(async move { let _ = server.serve().await; });
 

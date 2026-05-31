@@ -2,13 +2,12 @@
 // (`smarty_pants_daemon::*`); this file wires it together, owns the
 // long-lived async runtime, and handles signals.
 
-mod model_download;
-
 use anyhow::Context;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use smarty_pants_core::{config::Config, paths};
 use smarty_pants_daemon::{
     llm::{Llm, LlamaLlm},
+    model_download,
     pipeline::Pipeline,
     server::Server,
     shortcuts::{run_session, Dispatcher},
@@ -56,12 +55,10 @@ async fn main() -> anyhow::Result<()> {
     // ── ensure model is on disk ──
     let data_dir = paths::expand("$XDG_DATA_HOME/smarty-pants/models");
     tokio::fs::create_dir_all(&data_dir).await?;
-    let model_path = model_download::ensure_model(
-        &model_download::GEMMA_3_1B_IT_Q4_K_M,
-        &data_dir,
-    )
-    .await
-    .context("ensure model")?;
+    let model_spec = &model_download::QWEN_2_5_7B_IT_Q4_K_M;
+    let model_path = model_download::ensure_model(model_spec, &data_dir)
+        .await
+        .context("ensure model")?;
 
     // ── load LLM ──
     let backend = Arc::new(LlamaBackend::init().context("llama backend init")?);
@@ -79,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
 
     // ── Wayland + pipeline ──
     let wl = Arc::new(wayland::real::RealWayland::new());
-    let pipeline = Arc::new(Pipeline::new(wl, llm, cfg.clone()));
+    let pipeline = Arc::new(Pipeline::new(wl, llm, cfg.clone(), model_spec.chat_template));
 
     // ── Unix-socket server ──
     let socket_path = paths::expand(&cfg.daemon.socket_path);
