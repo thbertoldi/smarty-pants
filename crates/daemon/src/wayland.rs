@@ -169,24 +169,39 @@ pub mod real {
 
         async fn type_combo(&self, combo: &str) -> anyhow::Result<()> {
             // combo formatted as "ctrl+v" or "ctrl+c"
-            // wtype invocation: `wtype -M <mod> ... <key> -m <mod> ...`
+            //
+            // wtype invocation: `wtype -M <mod> ... -k <KEY>`
+            //
+            // `-k` synthesizes a key event (XKB keysym), which apps treat as
+            // a keyboard shortcut. A bare argument (e.g. just `v`) types the
+            // letter as text input — under a held modifier, most apps either
+            // ignore it or insert the literal character instead of firing
+            // the shortcut. Modifiers held via `-M` are released automatically
+            // when wtype exits, so an explicit `-m` is unnecessary.
+            //
+            // Matches Handy's invocation in src-tauri/src/clipboard.rs
+            // (`send_key_combo_via_wtype` — `-M ctrl -k v` for Ctrl+V).
             let parts: Vec<&str> = combo.split('+').collect();
             let (mods, key): (Vec<&str>, &str) = match parts.split_last() {
                 Some((last, rest)) => (rest.to_vec(), *last),
                 None => return Err(anyhow::anyhow!("empty combo")),
             };
+            // For named single-letter keys ("v", "c"), wtype's -k accepts the
+            // letter directly as XK_v / XK_c. For function/special keys the
+            // caller would pass "Return", "Insert", etc. — wtype's -k accepts
+            // the X11 keysym name.
             let mut cmd = Command::new("wtype");
             for m in &mods {
                 cmd.arg("-M").arg(m);
             }
-            cmd.arg(key);
-            for m in &mods {
-                cmd.arg("-m").arg(m);
-            }
-            let status = cmd.status().await
+            cmd.arg("-k").arg(key);
+            let output = cmd.output().await
                 .map_err(|e| anyhow::anyhow!("spawn wtype: {e}"))?;
-            if !status.success() {
-                return Err(anyhow::anyhow!("wtype exited {status}"));
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(anyhow::anyhow!(
+                    "wtype exited {} stderr={stderr}", output.status
+                ));
             }
             Ok(())
         }
