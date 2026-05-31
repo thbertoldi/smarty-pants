@@ -1,0 +1,15 @@
+---
+source: crates/daemon/src/prompt.rs
+expression: out
+---
+<|im_start|>system
+Rewrite in different words.<|im_end|>
+<|im_start|>user
+The input below is in Portuguese. Your output MUST also be in Portuguese.
+
+<input>
+A raposa marrom rápida salta sobre o cão preguiçoso.
+</input>
+
+Reminder: respond in Portuguese.<|im_end|>
+<|im_start|>assistant

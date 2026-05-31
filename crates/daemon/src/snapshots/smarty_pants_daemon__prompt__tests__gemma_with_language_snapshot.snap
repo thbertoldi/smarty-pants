@@ -1,0 +1,15 @@
+---
+source: crates/daemon/src/prompt.rs
+expression: out
+---
+<start_of_turn>user
+Rewrite in different words.
+
+The input below is in Portuguese. Your output MUST also be in Portuguese.
+
+<input>
+A raposa marrom rápida salta sobre o cão preguiçoso.
+</input>
+
+Reminder: respond in Portuguese.<end_of_turn>
+<start_of_turn>model

@@ -44,6 +44,7 @@ hex                 = "0.4"
 llama-cpp-2         = { version = "0.1", default-features = false }
 encoding_rs         = "0.8"
 which               = "6"
+whatlang            = "0.16"
 
 [dev-dependencies]
 insta               = "1"

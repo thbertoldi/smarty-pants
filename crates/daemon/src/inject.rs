@@ -59,9 +59,7 @@ async fn paste_combo_for_active_window() -> String {
 }
 
 async fn active_window_class() -> Option<String> {
-    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_none() {
-        return None;
-    }
+    std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE")?;
     let out = Command::new("hyprctl")
         .args(["activewindow", "-j"])
         .output()

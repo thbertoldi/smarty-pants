@@ -1,7 +1,8 @@
 //! Glue capture → generate → inject under a single-flight mutex.
 
 use crate::{
-    inject, llm::{GenerationParams, Llm}, prompt::{self, Template}, selection, wayland::Wayland,
+    inject, language, llm::{GenerationParams, Llm}, prompt::{self, Template},
+    selection, wayland::Wayland,
 };
 use smarty_pants_core::{config::Config, protocol::{ErrorKind, Response}};
 use std::sync::Arc;
@@ -77,7 +78,17 @@ impl Pipeline {
             "captured selection"
         );
 
-        let prompt = prompt::render(self.template, &mode.system, &captured.text);
+        let detected_language = language::detect(&captured.text);
+        tracing::info!(
+            language = detected_language.unwrap_or("(unknown)"),
+            "detected input language"
+        );
+        let prompt = prompt::render(
+            self.template,
+            &mode.system,
+            &captured.text,
+            detected_language,
+        );
         let params = GenerationParams {
             max_tokens:  mode.max_tokens.unwrap_or(self.cfg.model.max_tokens),
             temperature: mode.temperature.unwrap_or(self.cfg.model.temperature),

@@ -1,3 +1,4 @@
+pub mod language;
 pub mod wayland;
 pub mod selection;
 pub mod inject;
