@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/smartypants.png" alt="smarty-pants logo" width="200">
+</p>
+
 # smarty-pants
 
 Local AI writing assistant for Wayland. Highlight text in any app, press a hotkey, get it rewritten in place — no cloud, no telemetry. Three modes ship by default: **general** grammar/fluency fix, **LinkedIn** voice, and **academic** voice.
@@ -162,6 +166,10 @@ pkill smarty-pants-daemon            # universal stop
 - **Qwen's safety filter is mild but not zero.** Inputs with explicit profanity occasionally trigger a refusal instead of a rewrite. Swap to another GGUF by editing `crates/daemon/src/model_download.rs` and recompiling.
 - **Hyprland's portal-shortcut id namespace is `surface-transient`** — that's xdg-desktop-portal-hyprland's fallback when an app doesn't pass a `WindowIdentifier`. Cosmetic; functional.
 - **Only tested on Hyprland + wlroots-family compositors.** KDE Plasma 6 has portal support but uses different paste-chain quirks (Phase 3).
+
+## Acknowledgments
+
+Huge kudos to [cjpais/Handy](https://github.com/cjpais/Handy) — its battle-tested Wayland clipboard and synthetic-keystroke plumbing was the reference that made the inject path here actually work across compositors. Worth a star if you do anything Wayland-quirky in Rust.
 
 ## License
 
