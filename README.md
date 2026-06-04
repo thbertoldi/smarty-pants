@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/smartypants.png" alt="smarty-pants logo" width="200">
+  <img src="docs/assets/smartypants.png" alt="smarty-pants logo" width="320">
 </p>
 
 # smarty-pants
