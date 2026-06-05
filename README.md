@@ -59,6 +59,7 @@ The daemon registers three shortcut ids with the portal:
 | `surface-transient:rewrite`  | general grammar / fluency fix | `Super+R`           |
 | `surface-transient:academic` | academic voice                | `Super+A`           |
 | `surface-transient:linkedin` | LinkedIn voice                | `Super+I`           |
+| `surface-transient:condense` | condense for fewer LLM tokens | `Super+K`           |
 
 (`Super+Shift+L` is a common `movewindow` bind in stock Hyprland configs, hence `Super+I` for LinkedIn — pick whatever you have free.)
 
@@ -74,6 +75,7 @@ Hyprland's portal doesn't have a GUI for binding shortcuts — you write `bind =
 bind = SUPER, R, global, surface-transient:rewrite
 bind = SUPER, A, global, surface-transient:academic
 bind = SUPER, I, global, surface-transient:linkedin
+bind = SUPER, K, global, surface-transient:condense
 ```
 
 Then reload:
@@ -92,6 +94,7 @@ binds {
     Mod+R { spawn "smarty-pants" "trigger" "--mode" "rewrite"; }
     Mod+A { spawn "smarty-pants" "trigger" "--mode" "academic"; }
     Mod+I { spawn "smarty-pants" "trigger" "--mode" "linkedin"; }
+    Mod+K { spawn "smarty-pants" "trigger" "--mode" "condense"; }
 }
 ```
 
@@ -100,6 +103,7 @@ binds {
 bindsym $mod+R exec smarty-pants trigger --mode rewrite
 bindsym $mod+A exec smarty-pants trigger --mode academic
 bindsym $mod+I exec smarty-pants trigger --mode linkedin
+bindsym $mod+K exec smarty-pants trigger --mode condense
 ```
 
 ## Auto-start at login (systemd user unit)
@@ -121,7 +125,7 @@ journalctl --user -u smarty-pants -f
 
 1. Highlight some text in any window (the **primary selection** — i.e. just mouse-highlighting is enough; you don't need to `Ctrl+C` it).
 2. Keep focus on the target window where the rewrite should land.
-3. Press the hotkey for the mode you want (`Super+R` for general rewrite, `Super+A` for academic, `Super+I` for LinkedIn).
+3. Press the hotkey for the mode you want (`Super+R` for general rewrite, `Super+A` for academic, `Super+I` for LinkedIn, `Super+K` for condense).
 4. After a brief wait — typically 0.5–2 s once the model is warm; up to ~10 s on the first call after daemon start because llama.cpp builds the inference context — the highlighted text is replaced in place with the improved version.
 
 The paraphrase also lands on your system clipboard, so if focus shifted during the wait you can manually `Ctrl+Shift+V` (terminal) / `Ctrl+V` (GUI) to paste it wherever you actually meant.
