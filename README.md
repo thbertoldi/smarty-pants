@@ -4,7 +4,7 @@
 
 # smarty-pants
 
-Local AI writing assistant for Wayland. Highlight text in any app, press a hotkey, get it rewritten in place — no cloud, no telemetry. Three modes ship by default: **general** grammar/fluency fix, **LinkedIn** voice, and **academic** voice.
+Local AI writing assistant for Wayland. Highlight text in any app, press a hotkey, get it rewritten in place — no cloud, no telemetry. Four modes ship by default: **general** grammar/fluency fix, **LinkedIn** voice, **academic** voice, and **condense** for LLM-prompt compression.
 
 Runs as a long-lived daemon that keeps a Qwen 2.5 7B Instruct model resident in GPU VRAM and serves paraphrase requests both via the XDG GlobalShortcuts portal (Hyprland) and via a Unix-socket CLI (niri / Sway / anything else with `bindsym`-style hotkeys).
 
@@ -46,13 +46,13 @@ smarty-pants-daemon
 
 On first start the daemon downloads the Qwen 2.5 7B Instruct Q4_K_M GGUF (~4.4 GB) to `~/.local/share/smarty-pants/models/` and SHA-256 verifies it. Subsequent starts skip the download.
 
-Watch for the line `portal shortcuts bound count=3` — that's the signal the GlobalShortcuts portal accepted the three mode registrations.
+Watch for the line `portal shortcuts bound count=4` — that's the signal the GlobalShortcuts portal accepted the four mode registrations.
 
 ## Configure shortcuts
 
 ### Hyprland
 
-The daemon registers three shortcut ids with the portal:
+The daemon registers four shortcut ids with the portal:
 
 | Shortcut id                  | Mode                          | Suggested key combo |
 | ---------------------------- | ----------------------------- | ------------------- |
