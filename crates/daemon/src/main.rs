@@ -55,6 +55,12 @@ async fn main() -> anyhow::Result<()> {
             "Improve: academic voice",
             include_str!("../../../examples/prompts/academic.txt"),
         ),
+        (
+            "condense",
+            "SUPER+K",
+            "Improve: condense for fewer tokens",
+            include_str!("../../../examples/prompts/condense.txt"),
+        ),
     ];
     for (name, shortcut, description, system) in DEFAULT_MODES {
         if !cfg.modes.contains_key(*name) {
