@@ -53,7 +53,7 @@ python3 scripts/bundle-licenses.py cpu target/dependency-licenses
 install -Dm755 target/release/smarty-pants %{buildroot}%{_bindir}/smarty-pants
 install -Dm755 target/release/smarty-pants-daemon %{buildroot}%{_bindir}/smarty-pants-daemon
 install -Dm644 packaging/linux/computer.smarty-pants.desktop %{buildroot}%{_datadir}/applications/computer.smarty-pants.desktop
-install -Dm644 docs/assets/smartypants.png %{buildroot}%{_datadir}/pixmaps/computer.smarty-pants.png
+install -Dm644 docs/assets/app-icon.png %{buildroot}%{_datadir}/pixmaps/computer.smarty-pants.png
 install -Dm644 examples/deepseek.toml %{buildroot}%{_datadir}/smarty-pants/examples/deepseek.toml
 install -Dm644 packaging/systemd/smarty-pants.service %{buildroot}%{_userunitdir}/smarty-pants.service
 sed -i 's|ExecStart=.*|ExecStart=%{_bindir}/smarty-pants-daemon|' %{buildroot}%{_userunitdir}/smarty-pants.service

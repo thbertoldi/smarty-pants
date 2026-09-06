@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Pants-with-glasses tray mascot, embedded at seven panel sizes with a transparent background, and a matching application launcher icon.
+
 ## 0.2.0 — 2026-09-06
 
 - Direct DeepSeek and compatible APIs, optional API-only builds, and smaller embedded local presets. Qwen 2.5 1.5B is the local default; no Ollama dependency.

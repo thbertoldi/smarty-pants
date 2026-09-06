@@ -11,6 +11,8 @@ use std::sync::Arc;
 use tokio::{process::Command, sync::mpsc};
 use tokio_util::sync::CancellationToken;
 
+mod icon;
+
 #[derive(Clone)]
 enum Action {
     Change(SettingChange),
@@ -73,8 +75,11 @@ impl ksni::Tray for WritingTray {
     fn title(&self) -> String {
         format!("smarty-pants — {}", self.summary)
     }
-    fn icon_name(&self) -> String {
-        "accessories-text-editor".into()
+    fn icon_pixmap(&self) -> Vec<ksni::Icon> {
+        icon::pixmaps()
+    }
+    fn attention_icon_pixmap(&self) -> Vec<ksni::Icon> {
+        icon::pixmaps()
     }
     fn status(&self) -> ksni::Status {
         if self.error.is_some() {

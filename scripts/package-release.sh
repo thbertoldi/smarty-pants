@@ -17,7 +17,7 @@ install -d "$root/bin" "$root/share/applications" "$root/share/pixmaps" "$root/s
 install -m 755 "$binary_dir/smarty-pants" "$binary_dir/smarty-pants-daemon" "$root/bin/"
 install -m 755 packaging/linux/install.sh packaging/linux/uninstall.sh "$root/"
 install -m 644 packaging/linux/computer.smarty-pants.desktop "$root/share/applications/"
-install -m 644 docs/assets/smartypants.png "$root/share/pixmaps/computer.smarty-pants.png"
+install -m 644 docs/assets/app-icon.png "$root/share/pixmaps/computer.smarty-pants.png"
 install -m 644 examples/deepseek.toml "$root/share/smarty-pants/"
 install -m 644 LICENSE packaging/linux/README.md "$root/"
 printf '%s\n' "$flavor" > "$root/FLAVOR"
