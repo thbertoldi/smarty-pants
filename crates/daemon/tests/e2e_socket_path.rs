@@ -18,7 +18,10 @@ async fn happy_path_via_socket_uses_echo_llm_and_writes_clipboard() {
     tokio::time::sleep(Duration::from_millis(30)).await;
 
     let mut client = UnixStream::connect(&sock).await.unwrap();
-    let req = serde_json::to_string(&Request::Paraphrase { mode: "rewrite".into() }).unwrap();
+    let req = serde_json::to_string(&Request::Paraphrase {
+        mode: "rewrite".into(),
+    })
+    .unwrap();
     client.write_all(req.as_bytes()).await.unwrap();
     client.write_all(b"\n").await.unwrap();
     let mut buf = String::new();
@@ -43,7 +46,10 @@ async fn empty_selection_returns_empty_response() {
     tokio::time::sleep(Duration::from_millis(30)).await;
 
     let mut client = UnixStream::connect(&sock).await.unwrap();
-    let req = serde_json::to_string(&Request::Paraphrase { mode: "rewrite".into() }).unwrap();
+    let req = serde_json::to_string(&Request::Paraphrase {
+        mode: "rewrite".into(),
+    })
+    .unwrap();
     client.write_all(req.as_bytes()).await.unwrap();
     client.write_all(b"\n").await.unwrap();
     let mut buf = String::new();
@@ -53,4 +59,82 @@ async fn empty_selection_returns_empty_response() {
     assert!(matches!(resp, Response::Empty), "got {resp:?}");
 
     server_handle.abort();
+}
+
+async fn request(socket: &std::path::Path, request: Request) -> Response {
+    let mut client = UnixStream::connect(socket).await.unwrap();
+    client
+        .write_all(format!("{}\n", serde_json::to_string(&request).unwrap()).as_bytes())
+        .await
+        .unwrap();
+    let mut buf = String::new();
+    client.read_to_string(&mut buf).await.unwrap();
+    serde_json::from_str(buf.trim()).unwrap()
+}
+
+#[tokio::test]
+async fn status_reports_modes_pause_persists_and_shutdown_exits_server() {
+    use smarty_pants_core::config::Config;
+    use smarty_pants_daemon::{
+        llm::EchoLlm, pipeline::Pipeline, server::Server, settings::Settings,
+        wayland::mock::MockWayland,
+    };
+    use std::sync::Arc;
+    let tmp = TempDir::new().unwrap();
+    let sock = tmp.path().join("control.sock");
+    let path = tmp.path().join("config.toml");
+    let cfg = Config::load(&path).unwrap();
+    let pipeline = Arc::new(Pipeline::new(
+        Arc::new(MockWayland::new()),
+        Arc::new(EchoLlm),
+        Arc::new(cfg),
+    ));
+    let settings = Arc::new(Settings::new(pipeline.clone(), path.clone()).await);
+    let server = Server::bind(&sock, pipeline.clone())
+        .unwrap()
+        .with_settings(settings);
+    let handle = tokio::spawn(server.serve());
+    assert!(matches!(
+        request(&sock, Request::Status).await,
+        Response::Status {
+            mode_count: 4,
+            paused: false,
+            ..
+        }
+    ));
+    assert!(matches!(
+        request(&sock, Request::SetPaused { paused: true }).await,
+        Response::Ok { .. }
+    ));
+    assert!(Config::load(&path).unwrap().daemon.paused);
+    assert_eq!(
+        request(
+            &sock,
+            Request::Paraphrase {
+                mode: "rewrite".into()
+            }
+        )
+        .await,
+        Response::Paused
+    );
+    std::fs::write(&path, "[model]\ntemperature = 99\n").unwrap();
+    assert!(matches!(
+        request(&sock, Request::Reload).await,
+        Response::Error { .. }
+    ));
+    assert!(matches!(
+        request(&sock, Request::Status).await,
+        Response::Status { paused: true, .. }
+    ));
+    // A second process cannot steal this daemon's listening socket.
+    assert!(Server::bind(&sock, pipeline).is_err());
+    assert!(matches!(
+        request(&sock, Request::Shutdown).await,
+        Response::Ok { .. }
+    ));
+    tokio::time::timeout(Duration::from_secs(2), handle)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
 }

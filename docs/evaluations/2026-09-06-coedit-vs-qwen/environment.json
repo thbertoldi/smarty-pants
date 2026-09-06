@@ -1,0 +1,43 @@
+{
+  "date": "2026-09-06",
+  "cpu": "Intel Core Ultra 7 165H",
+  "system_ram_gib": 62,
+  "execution": "Sequential CPU-only runs with four inference threads and an excluded warmup; no CPU affinity; existing desktop/services active",
+  "qwen_model": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+  "qwen_revision": "91cad51170dc346986eccefdc2dd33a9da36ead9",
+  "qwen_weights_sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "qwen_weight_bytes": 1117320736,
+  "qwen_runtime": "llama-cpp-2 0.1.146 / llama-cpp-sys-2 0.1.146",
+  "qwen_build": "release, --no-default-features --features local; gpu_layers = 0",
+  "qwen_temperature": 0.0,
+  "qwen_seed": 42,
+  "qwen_threads": 4,
+  "qwen_context_tokens": 4096,
+  "qwen_max_output_tokens": 512,
+  "qwen_token_ids_not_recorded": true,
+  "rustc": "rustc 1.91.1 (ed61e7d7e 2025-11-07)",
+  "cargo": "cargo 1.91.1 (ea2d97820 2025-10-10)",
+  "base_git_commit": "07ebe9654c4b5e5468b49dbaf0d0b82cc3906f39",
+  "working_tree_note": "Evaluation includes uncommitted provider/tray/model changes and comparison helpers; the base commit alone is insufficient to reproduce it.",
+  "sha256": {
+    "Cargo.lock": "9bbc7973ff457cbf0a48513252889ba7db792c93f9d54121eaaca8bee1643184",
+    "examples/evaluation/comparison.jsonl": "a520de3c0f1373e2e93cbfccc1003a26141edc52b25e61192e824b21171f05de",
+    "examples/evaluation/comparison.toml": "3d836ff2729d63b90c53a09f56227f23096997c0473f947900e65724d3044e9b",
+    "examples/evaluation/coedit.py": "6d0407bcfb20696afdefe9bb6e983a15624d8eef625a885ecf1c0a9f5097de2a",
+    "examples/evaluation/coedit-requirements.txt": "cacec902aa987b3317bb55aeca926db6ef593386c04af4d1d9325d8d84b31adb",
+    "examples/prompts/academic.txt": "15bd37f9710c7808cddf959da6b39817b1a7b469da184ba732a05090950a7e1b",
+    "examples/prompts/condense.txt": "3572ef255995504875fab781e88901329b8a886dfed015a00293560f14f97d94",
+    "examples/prompts/linkedin.txt": "dd4ad9b52db44cd76ace3cdfcc02e0a10f58e89efdc6886fb4562a5cbe01c1d4",
+    "examples/prompts/rewrite.txt": "100ff25cde27b94ea5b8d943359d50b4114d7159ff67d671ba9dba273c2ed94e",
+    "docs/evaluations/2026-09-06-coedit-vs-qwen/qwen.jsonl": "cf875d2675d979f0b246f6a5b248877ad84e19ccec60065a774397e62d536c24",
+    "docs/evaluations/2026-09-06-coedit-vs-qwen/coedit.jsonl": "d7b8049ebc01ae87bd4cd1c5ec08f0e64f6f1a2410489944ed352ceff3a82d1c"
+  },
+  "qwen_warmup": {
+    "output": "This sentence has a small grammatical error.",
+    "warmup_ms_including_load": 5539
+  },
+  "time_reports": {
+    "qwen": "\tCommand being timed: \"target/release/examples/evaluate examples/evaluation/comparison.toml examples/evaluation/comparison.jsonl --warmup\"\n\tUser time (seconds): 584.15\n\tSystem time (seconds): 2.05\n\tPercent of CPU this job got: 392%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 2:29.36\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 1948608\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 0\n\tMinor (reclaiming a frame) page faults: 508280\n\tVoluntary context switches: 35429\n\tInvoluntary context switches: 41566\n\tSwaps: 0\n\tFile system inputs: 0\n\tFile system outputs: 448\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n",
+    "coedit": "\tCommand being timed: \"target/coedit-venv/bin/python examples/evaluation/coedit.py examples/evaluation/comparison.jsonl --model-path target/coedit-model/5637bcdf9d8d4419f97c8cfea36f7d35c79232b6 --metadata docs/evaluations/2026-09-06-coedit-vs-qwen/coedit-metadata.json\"\n\tUser time (seconds): 213.90\n\tSystem time (seconds): 0.96\n\tPercent of CPU this job got: 322%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 1:06.56\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 3449664\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 60\n\tMinor (reclaiming a frame) page faults: 128891\n\tVoluntary context switches: 6691\n\tInvoluntary context switches: 9613\n\tSwaps: 0\n\tFile system inputs: 87848\n\tFile system outputs: 4672\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n"
+  }
+}

@@ -62,13 +62,60 @@ fn applies_defaults_when_minimal_toml() {
 }
 
 #[test]
+fn deepseek_partial_overrides_keep_provider_defaults() {
+    let cfg: Config = toml::from_str(
+        "[inference]\nprovider = 'deepseek'\n[deepseek]\nmodel = 'deepseek-v4-pro'\n",
+    )
+    .unwrap();
+    cfg.validate().unwrap();
+    assert_eq!(cfg.deepseek.base_url, "https://api.deepseek.com");
+    assert_eq!(
+        cfg.deepseek.api_key_env.as_deref(),
+        Some("DEEPSEEK_API_KEY")
+    );
+    let empty: Config = toml::from_str("").unwrap();
+    assert_eq!(empty, Config::default());
+}
+
+#[test]
+fn validates_remote_transport_and_sampling_before_applying_config() {
+    for invalid in [
+        "[inference]\nprovider = 'typo'",
+        "[model]\ntemperature = nan",
+        "[model]\nmax_tokens = 0",
+        "[modes.custom]\nsystem = ''",
+        "[inference]\nprovider = 'openai_compatible'\n[api]\nbase_url = 'http://example.com/v1'\nmodel = 'editor'",
+        "[inference]\nprovider = 'deepseek'\n[deepseek]\nbase_url = 'https://secret@example.com/v1'",
+        "[inference]\nprovider = 'deepseek'\n[deepseek]\ntimeout_seconds = 0",
+    ] {
+        let result = toml::from_str::<Config>(invalid).map_err(anyhow::Error::from).and_then(|cfg| cfg.validate());
+        assert!(result.is_err(), "accepted {invalid}");
+    }
+    let cfg: Config = toml::from_str("[inference]\nprovider = 'openai_compatible'\n[api]\nbase_url = 'http://[::1]:8080/v1'\nmodel = 'editor'").unwrap();
+    cfg.validate().unwrap();
+}
+
+#[test]
+fn shipped_example_loads_and_retains_all_builtin_modes() {
+    let cfg = Config::load(
+        &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/config.toml"),
+    )
+    .unwrap();
+    assert_eq!(cfg.modes.len(), 4);
+    assert!(cfg.modes.contains_key("condense"));
+}
+
+#[test]
 fn parse_error_includes_file_path() {
     use std::io::Write;
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("bad.toml");
     let mut f = std::fs::File::create(&p).unwrap();
-    f.write_all(b"[daemon]\nlog_level = 123\n").unwrap();  // wrong type
+    f.write_all(b"[daemon]\nlog_level = 123\n").unwrap(); // wrong type
     let err = Config::from_path(&p).unwrap_err();
     let msg = format!("{err:#}");
-    assert!(msg.contains("bad.toml"), "expected file path in error, got: {msg}");
+    assert!(
+        msg.contains("bad.toml"),
+        "expected file path in error, got: {msg}"
+    );
 }

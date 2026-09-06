@@ -8,7 +8,10 @@ use async_trait::async_trait;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(dead_code)]
-pub enum ClipboardKind { Primary, Regular }
+pub enum ClipboardKind {
+    Primary,
+    Regular,
+}
 
 #[async_trait]
 #[allow(dead_code)]
@@ -29,16 +32,18 @@ pub mod mock {
     /// the daemon issued the expected key sequence.
     #[derive(Default)]
     pub struct MockWayland {
-        pub primary:        Mutex<Option<String>>,
-        pub regular:        Mutex<Option<String>>,
-        pub combos:         Mutex<Vec<String>>,
+        pub primary: Mutex<Option<String>>,
+        pub regular: Mutex<Option<String>>,
+        pub combos: Mutex<Vec<String>>,
         /// If set, a Ctrl+C combo causes `primary` to be copied into `regular`
         /// so the selection capture loop sees something.
         pub ctrl_c_copies_primary_into_regular: bool,
     }
 
     impl MockWayland {
-        pub fn new() -> Self { Self::default() }
+        pub fn new() -> Self {
+            Self::default()
+        }
 
         pub fn set_primary(&self, s: Option<&str>) {
             *self.primary.lock().unwrap() = s.map(str::to_owned);
@@ -88,14 +93,20 @@ mod tests {
     async fn mock_read_returns_seeded_primary() {
         let w = MockWayland::new();
         w.set_primary(Some("hello"));
-        assert_eq!(w.read(ClipboardKind::Primary).await.unwrap().as_deref(), Some("hello"));
+        assert_eq!(
+            w.read(ClipboardKind::Primary).await.unwrap().as_deref(),
+            Some("hello")
+        );
     }
 
     #[tokio::test]
     async fn mock_write_then_read_regular() {
         let w = MockWayland::new();
         w.write_regular("paraphrased").await.unwrap();
-        assert_eq!(w.read(ClipboardKind::Regular).await.unwrap().as_deref(), Some("paraphrased"));
+        assert_eq!(
+            w.read(ClipboardKind::Regular).await.unwrap().as_deref(),
+            Some("paraphrased")
+        );
     }
 
     #[tokio::test]
@@ -115,19 +126,21 @@ pub mod real {
     pub struct RealWayland;
 
     impl RealWayland {
-        pub fn new() -> Self { Self }
+        pub fn new() -> Self {
+            Self
+        }
     }
 
     impl Default for RealWayland {
-        fn default() -> Self { Self::new() }
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     #[async_trait]
     impl Wayland for RealWayland {
         async fn read(&self, kind: ClipboardKind) -> anyhow::Result<Option<String>> {
-            use wl_clipboard_rs::paste::{
-                get_contents, ClipboardType, Error, MimeType, Seat,
-            };
+            use wl_clipboard_rs::paste::{get_contents, ClipboardType, Error, MimeType, Seat};
             let target = match kind {
                 ClipboardKind::Primary => ClipboardType::Primary,
                 ClipboardKind::Regular => ClipboardType::Regular,
@@ -137,16 +150,15 @@ pub mod real {
                 match get_contents(target, Seat::Unspecified, MimeType::Text) {
                     Ok((mut pipe, _)) => {
                         let mut buf = String::new();
-                        pipe.read_to_string(&mut buf).map_err(|e| {
-                            anyhow::anyhow!("read clipboard pipe: {e}")
-                        })?;
+                        pipe.read_to_string(&mut buf)
+                            .map_err(|e| anyhow::anyhow!("read clipboard pipe: {e}"))?;
                         Ok::<Option<String>, anyhow::Error>(Some(buf))
                     }
                     // Treat "no seats" / "empty clipboard" / "no MIME type" as
                     // "selection unavailable" rather than fatal errors.
-                    Err(Error::NoSeats)
-                    | Err(Error::ClipboardEmpty)
-                    | Err(Error::NoMimeType) => Ok(None),
+                    Err(Error::NoSeats) | Err(Error::ClipboardEmpty) | Err(Error::NoMimeType) => {
+                        Ok(None)
+                    }
                     Err(e) => Err(anyhow::anyhow!("wl-clipboard: {e}")),
                 }
             })
@@ -231,12 +243,15 @@ pub mod real {
                 cmd.arg("-M").arg(m);
             }
             cmd.arg("-k").arg(key);
-            let output = cmd.output().await
+            let output = cmd
+                .output()
+                .await
                 .map_err(|e| anyhow::anyhow!("spawn wtype: {e}"))?;
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 return Err(anyhow::anyhow!(
-                    "wtype exited {} stderr={stderr}", output.status
+                    "wtype exited {} stderr={stderr}",
+                    output.status
                 ));
             }
             Ok(())

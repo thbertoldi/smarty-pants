@@ -1,0 +1,28 @@
+# DeepSeek-only starting configuration. No local model download is needed.
+# Merge these settings into an existing config; preserve custom modes and keys.
+# All four built-in writing modes are inherited without prompt overrides.
+
+[inference]
+provider = "deepseek"
+
+[deepseek]
+base_url = "https://api.deepseek.com"
+model = "deepseek-v4-flash"
+timeout_seconds = 60
+api_key_env = "DEEPSEEK_API_KEY"
+# Recommended for systemd: use the tray's "Set API key" dialog. It creates
+# a private key file and adds api_key_file here automatically.
+# Or point at an existing file containing ONLY the API key:
+# api_key_file = "$XDG_CONFIG_HOME/smarty-pants/keys/deepseek.key"
+# A configured file takes precedence over api_key_env.
+
+[model]
+# Generation settings also apply to API providers.
+temperature = 0.2
+max_tokens = 512
+
+[tray]
+enabled = true
+
+[writing]
+preserve_literals = true

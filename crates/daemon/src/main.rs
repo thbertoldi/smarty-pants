@@ -1,15 +1,12 @@
-// Daemon entry point. All real logic lives in the library crate
-// (`smarty_pants_daemon::*`); this file wires it together, owns the
-// long-lived async runtime, and handles signals.
+//! Daemon lifecycle: settings, IPC, shortcuts and tray start before model load.
 
 use anyhow::Context;
-use llama_cpp_2::llama_backend::LlamaBackend;
 use smarty_pants_core::{config::Config, paths};
 use smarty_pants_daemon::{
-    llm::{Llm, LlamaLlm},
-    model_download,
+    backend,
     pipeline::Pipeline,
     server::Server,
+    settings::Settings,
     shortcuts::{run_session, Dispatcher},
     wayland,
 };
@@ -17,127 +14,90 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    init_tracing();
-
-    // ── config ──
     let config_path = paths::expand("$XDG_CONFIG_HOME/smarty-pants/config.toml");
-    let mut cfg = if config_path.exists() {
-        Config::from_path(&config_path).context("load config")?
-    } else {
-        tracing::info!(
-            "no config at {} — using defaults",
-            config_path.display()
-        );
-        Config::default()
-    };
-
-    // Inject the three built-in modes for any name the user's config
-    // doesn't already define. Each mode registers as a separate portal
-    // shortcut; the user binds them in hyprland.conf via the `global`
-    // dispatcher (e.g. `bind = SUPER, R, global, surface-transient:rewrite`).
-    type ModeDefaults = (&'static str, &'static str, &'static str, &'static str);
-    const DEFAULT_MODES: &[ModeDefaults] = &[
-        (
-            "rewrite",
-            "SUPER+R",
-            "Improve: grammar and fluency",
-            include_str!("../../../examples/prompts/rewrite.txt"),
-        ),
-        (
-            "linkedin",
-            "SUPER+SHIFT+L",
-            "Improve: LinkedIn voice",
-            include_str!("../../../examples/prompts/linkedin.txt"),
-        ),
-        (
-            "academic",
-            "SUPER+A",
-            "Improve: academic voice",
-            include_str!("../../../examples/prompts/academic.txt"),
-        ),
-        (
-            "condense",
-            "SUPER+K",
-            "Improve: condense for fewer tokens",
-            include_str!("../../../examples/prompts/condense.txt"),
-        ),
-    ];
-    for (name, shortcut, description, system) in DEFAULT_MODES {
-        if !cfg.modes.contains_key(*name) {
-            cfg.modes.insert(
-                (*name).into(),
-                smarty_pants_core::config::ModeCfg {
-                    system: (*system).to_owned(),
-                    shortcut: Some((*shortcut).to_owned()),
-                    description: Some((*description).to_owned()),
-                    temperature: None,
-                    top_p: None,
-                    max_tokens: None,
-                },
-            );
-        }
-    }
-    let cfg = Arc::new(cfg);
-
-    // ── runtime tool preflight ──
+    let cfg = Arc::new(Config::load(&config_path).context("load config")?);
+    init_tracing(&cfg.daemon.log_level);
     preflight_tools()?;
 
-    // ── ensure model is on disk ──
-    let data_dir = paths::expand("$XDG_DATA_HOME/smarty-pants/models");
-    tokio::fs::create_dir_all(&data_dir).await?;
-    let model_spec = &model_download::QWEN_2_5_7B_IT_Q4_K_M;
-    let model_path = model_download::ensure_model(model_spec, &data_dir)
-        .await
-        .context("ensure model")?;
-
-    // ── load LLM ──
-    let backend = Arc::new(LlamaBackend::init().context("llama backend init")?);
-    let llm: Arc<dyn Llm> = Arc::new(
-        LlamaLlm::load(
-            backend,
-            &model_path,
-            cfg.model.context_size,
-            cfg.model.threads,
-            cfg.model.gpu_layers,
-            cfg.model.gpu_main_device,
-        )
-        .context("load LLM")?,
-    );
-
-    // ── Wayland + pipeline ──
+    let llm = backend::create(&cfg)?;
     let wl = Arc::new(wayland::real::RealWayland::new());
-    let pipeline = Arc::new(Pipeline::new(wl, llm, cfg.clone(), model_spec.chat_template));
-
-    // ── Unix-socket server ──
+    let pipeline = Arc::new(Pipeline::new(wl, llm, cfg.clone()));
+    let settings = Arc::new(Settings::new(pipeline.clone(), config_path).await);
     let socket_path = paths::expand(&cfg.daemon.socket_path);
-    let server = Server::bind(&socket_path, pipeline.clone()).context("bind socket")?;
-    let server_task = tokio::spawn(server.serve());
+    let server = Server::bind(&socket_path, pipeline.clone())?.with_settings(settings.clone());
+    let shutdown = server.shutdown_token();
+    let mut server_task = tokio::spawn(server.serve());
+    let mut shortcuts_task = start_shortcuts(cfg.clone(), pipeline.clone());
+    #[cfg(feature = "tray")]
+    let tray_task = if cfg.tray.enabled {
+        let settings = settings.clone();
+        let shutdown = shutdown.clone();
+        Some(tokio::spawn(async move {
+            if let Err(error) = smarty_pants_daemon::tray::run(settings, shutdown).await {
+                tracing::warn!(%error, "tray unavailable; CLI and shortcuts remain available");
+            }
+        }))
+    } else {
+        None
+    };
 
-    // ── portal shortcuts (best-effort) ──
-    let dispatcher = Arc::new(Dispatcher::new(pipeline.clone()));
-    let cfg_for_shortcuts = cfg.clone();
-    let shortcuts_task = tokio::spawn(async move {
-        if let Err(e) = run_session(&cfg_for_shortcuts, dispatcher).await {
-            tracing::error!(error = %e, "shortcuts session ended in error");
+    tracing::info!(provider = cfg.inference.provider.as_str(), "daemon ready");
+    let mut changes = settings.subscribe();
+    let mut current = cfg;
+    let mut idle_tick = tokio::time::interval(std::time::Duration::from_secs(15));
+    let result = loop {
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => break Ok(()),
+            _ = wait_for_sigterm() => break Ok(()),
+            result = &mut server_task => break result.context("socket server task").and_then(|result| result),
+            _ = shutdown.cancelled() => break Ok(()),
+            _ = idle_tick.tick() => pipeline.unload_if_idle().await,
+            result = changes.changed() => {
+                if result.is_err() { break Ok(()); }
+                let updated = changes.borrow_and_update().clone();
+                if updated.shortcuts != current.shortcuts || shortcut_definitions(&updated) != shortcut_definitions(&current) {
+                    shortcuts_task.abort();
+                    shortcuts_task = start_shortcuts(updated.clone(), pipeline.clone());
+                }
+                current = updated;
+            }
         }
-    });
-
-    // ── wait for SIGTERM / SIGINT / server crash ──
-    tokio::select! {
-        _ = tokio::signal::ctrl_c() => tracing::info!("SIGINT received"),
-        _ = wait_for_sigterm() => tracing::info!("SIGTERM received"),
-        r = server_task => tracing::error!("server task ended: {r:?}"),
-    }
-
+    };
+    shutdown.cancel();
     shortcuts_task.abort();
+    server_task.abort();
+    #[cfg(feature = "tray")]
+    if let Some(task) = tray_task {
+        let _ = task.await;
+    }
     let _ = std::fs::remove_file(&socket_path);
-    Ok(())
+    result
 }
 
-fn init_tracing() {
+fn start_shortcuts(cfg: Arc<Config>, pipeline: Arc<Pipeline>) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        if let Err(error) = run_session(&cfg, Arc::new(Dispatcher::new(pipeline))).await {
+            tracing::error!(%error, "shortcuts session ended in error");
+        }
+    })
+}
+
+fn shortcut_definitions(cfg: &Config) -> Vec<(&str, Option<&str>, Option<&str>)> {
+    cfg.modes
+        .iter()
+        .map(|(name, mode)| {
+            (
+                name.as_str(),
+                mode.shortcut.as_deref(),
+                mode.description.as_deref(),
+            )
+        })
+        .collect()
+}
+
+fn init_tracing(level: &str) {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,smarty_pants=info"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
     tracing_subscriber::registry()
         .with(filter)
         .with(fmt::layer().with_target(true))

@@ -19,9 +19,9 @@ use std::time::Duration;
 use tokio::process::Command;
 
 pub async fn write(
-    wl:                Arc<dyn Wayland>,
-    generated:         &str,
-    paste_settle_ms:   u64,
+    wl: Arc<dyn Wayland>,
+    generated: &str,
+    paste_settle_ms: u64,
     restore_clipboard: bool,
 ) -> anyhow::Result<()> {
     let prior = if restore_clipboard {

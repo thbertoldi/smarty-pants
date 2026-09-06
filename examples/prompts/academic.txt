@@ -13,6 +13,8 @@ fits academic writing conventions:
   of the field.
 - Preserve the original meaning, all specific facts, and any technical
   terms. Do not introduce new claims, citations, evidence, or examples.
+- Rewrite every sentence. Keep all numbers, measurements, dates, and names
+  exactly as written. Do not omit the methods or conditions of a study.
 - Reply in the SAME LANGUAGE as the input.
 
 CRITICAL RULES:

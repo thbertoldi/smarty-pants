@@ -1,5 +1,5 @@
 # Copy to ~/.config/smarty-pants/config.toml and edit.
-# Every section is optional; defaults match Phase 1 behavior.
+# Every section is optional. Local inference is the default; no Ollama needed.
 
 [daemon]
 log_level = "info"
@@ -9,7 +9,34 @@ enabled        = true
 require_portal = false
 
 [model]
+name = "qwen-2.5-1.5b-instruct-q4_k_m"
 gpu_layers = -1     # -1 = offload all if a Vulkan GPU is present, 0 = CPU
+temperature = 0.2
+idle_unload_seconds = 300  # 0 = keep weights loaded
+# path = "/absolute/path/custom.gguf"  # overrides the preset; no download
+# chat_template = "chatml"            # or "gemma", for a custom path
+
+[inference]
+provider = "local"   # "deepseek" or "openai_compatible" are optional
+
+[deepseek]
+base_url = "https://api.deepseek.com"
+model = "deepseek-v4-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+# api_key_file = "/absolute/path/deepseek.key"  # takes precedence over env
+timeout_seconds = 60
+
+[api]
+base_url = "http://localhost:8080/v1"
+model = "your-served-model"
+# api_key_env = "WRITING_API_KEY"  # omit for an unauthenticated local server
+timeout_seconds = 60
+
+[tray]
+enabled = true
+
+[writing]
+preserve_literals = true  # reject changed numbers, links, email addresses, or code
 
 [modes.rewrite]
 shortcut    = "SUPER+SHIFT+P"

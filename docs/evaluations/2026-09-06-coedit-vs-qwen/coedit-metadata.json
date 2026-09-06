@@ -1,0 +1,46 @@
+{
+  "model": "grammarly/coedit-large",
+  "revision": "5637bcdf9d8d4419f97c8cfea36f7d35c79232b6",
+  "weights_sha256": "c692f68bca5c6899801bc9fad626fefd3359ccd95e26dccae4dd72186fd98852",
+  "weights_bytes": 3132439432,
+  "parameter_count": 783092736,
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 4,
+  "inter_op_threads": 1,
+  "seed": 42,
+  "do_sample": false,
+  "num_beams": 1,
+  "max_new_tokens": 512,
+  "python": "3.12.8",
+  "packages": {
+    "torch": "2.14.0+cpu",
+    "transformers": "5.16.1",
+    "sentencepiece": "0.2.2",
+    "tokenizers": "0.23.2",
+    "safetensors": "0.8.0",
+    "huggingface-hub": "1.30.0"
+  },
+  "corpus_sha256": "a520de3c0f1373e2e93cbfccc1003a26141edc52b25e61192e824b21171f05de",
+  "model_file_sha256": {
+    "config.json": "bca25a47a9ceab6fa63555b0eaab289e89735bcf1de6cc1dcb6bc57e88881c0d",
+    "generation_config.json": "eed058a57a4e9aa945c08aab951ae8455298d8912a5fe2d301caf0141595fd77",
+    "special_tokens_map.json": "5c87151ef0f72a99d1f766a4c418bd2a1f90aaa30a8e22fe5eca9641daebb64f",
+    "spiece.model": "d60acb128cf7b7f2536e8f38a5b18a05535c9e14c7a355904270e15b0945ea86",
+    "tokenizer.json": "92c25d2e604250ffdcf35d7aec47931868ca92b35d6afe84dc039a47a3a87226",
+    "tokenizer_config.json": "16dcefb67ade62dc4f5fb2b1be434e10116f8da40c964c2b43fcf7294944f397"
+  },
+  "verification_ms": 2041.386,
+  "load_ms": 8135.963,
+  "warmup": {
+    "output": "This sentence has a small grammar error.",
+    "ms": 625.749,
+    "input_tokens": 23,
+    "output_tokens": 10,
+    "ended_with_eos": true,
+    "unknown_input_tokens": 0,
+    "tokenizer_roundtrip": "Fix grammatical errors in this text: This sentence have a small grammatical error.</s>",
+    "rss_kib": 3343224,
+    "peak_rss_kib": 3343224
+  }
+}

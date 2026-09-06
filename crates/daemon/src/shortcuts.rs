@@ -16,7 +16,9 @@ pub struct Dispatcher {
 }
 
 impl Dispatcher {
-    pub fn new(pipeline: Arc<Pipeline>) -> Self { Self { pipeline } }
+    pub fn new(pipeline: Arc<Pipeline>) -> Self {
+        Self { pipeline }
+    }
 
     /// Called for every Activated event. `id` is the shortcut id, which we
     /// equate with the mode name.
@@ -32,10 +34,7 @@ impl Dispatcher {
 /// Returns `Ok(())` after gracefully handling the no-portal case (logs and
 /// exits without error). Returns `Err(_)` only when `cfg.shortcuts.require_portal`
 /// is true and the portal is unavailable.
-pub async fn run_session(
-    cfg:        &Config,
-    dispatcher: Arc<Dispatcher>,
-) -> anyhow::Result<()> {
+pub async fn run_session(cfg: &Config, dispatcher: Arc<Dispatcher>) -> anyhow::Result<()> {
     use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
     use futures::StreamExt;
 
@@ -56,11 +55,17 @@ pub async fn run_session(
     };
 
     let session = portal.create_session(Default::default()).await?;
-    let shortcuts: Vec<NewShortcut> = cfg.modes.iter().map(|(id, m)| {
-        let desc = m.description.clone().unwrap_or_else(|| format!("Paraphrase: {id}"));
-        NewShortcut::new(id.clone(), desc)
-            .preferred_trigger(m.shortcut.as_deref())
-    }).collect();
+    let shortcuts: Vec<NewShortcut> = cfg
+        .modes
+        .iter()
+        .map(|(id, m)| {
+            let desc = m
+                .description
+                .clone()
+                .unwrap_or_else(|| format!("Paraphrase: {id}"));
+            NewShortcut::new(id.clone(), desc).preferred_trigger(m.shortcut.as_deref())
+        })
+        .collect();
 
     if shortcuts.is_empty() {
         tracing::warn!("no modes configured; nothing to bind");
@@ -88,7 +93,10 @@ pub async fn run_session(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{llm::EchoLlm, prompt::Template, wayland::{mock::MockWayland, Wayland}};
+    use crate::{
+        llm::EchoLlm,
+        wayland::{mock::MockWayland, Wayland},
+    };
     use smarty_pants_core::config::{Config, ModeCfg};
 
     #[tokio::test]
@@ -96,15 +104,24 @@ mod tests {
         let wl = Arc::new(MockWayland::new());
         wl.set_primary(Some("hello"));
         let mut cfg = Config::default();
-        cfg.modes.insert("rewrite".into(), ModeCfg {
-            system: "rw".into(),
-            shortcut: None, description: None,
-            temperature: None, top_p: None, max_tokens: None,
-        });
-        let pipe = Arc::new(Pipeline::new(wl.clone(), Arc::new(EchoLlm), Arc::new(cfg), Template::Gemma));
+        cfg.modes.insert(
+            "rewrite".into(),
+            ModeCfg {
+                system: "rw".into(),
+                shortcut: None,
+                description: None,
+                temperature: None,
+                top_p: None,
+                max_tokens: None,
+            },
+        );
+        let pipe = Arc::new(Pipeline::new(wl.clone(), Arc::new(EchoLlm), Arc::new(cfg)));
         let d = Dispatcher::new(pipe);
         d.handle_activation("rewrite").await;
-        let v = wl.read(crate::wayland::ClipboardKind::Regular).await.unwrap();
+        let v = wl
+            .read(crate::wayland::ClipboardKind::Regular)
+            .await
+            .unwrap();
         assert_eq!(v.as_deref(), Some("[paraphrased] hello"));
     }
 }

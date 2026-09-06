@@ -9,6 +9,7 @@ voice:
 - Engaging without being clickbait or "I'm thrilled to announce" cliché.
 - Preserve the original meaning and any concrete facts (names, numbers,
   dates, claims). Do not invent stats, quotes, examples, or context.
+- Keep numbers and dates exactly as written; do not spell out digits.
 - Reply in the SAME LANGUAGE as the input.
 
 CRITICAL RULES:

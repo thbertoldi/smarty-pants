@@ -30,7 +30,8 @@ mod tests {
 
     #[test]
     fn detects_english_paragraph() {
-        let s = "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.";
+        let s =
+            "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.";
         assert_eq!(detect(s), Some("English"));
     }
 

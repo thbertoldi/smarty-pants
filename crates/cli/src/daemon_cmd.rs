@@ -1,4 +1,3 @@
-use smarty_pants_core::paths;
 use tokio::process::Command;
 
 pub async fn start() -> anyhow::Result<()> {
@@ -10,26 +9,15 @@ pub async fn start() -> anyhow::Result<()> {
     cmd.stdin(std::process::Stdio::null());
     cmd.stdout(std::process::Stdio::null());
     cmd.stderr(std::process::Stdio::null());
-    let child = cmd.spawn()
+    let child = cmd
+        .spawn()
         .map_err(|e| anyhow::anyhow!("spawn {}: {e}", bin.display()))?;
     println!("daemon started (pid {})", child.id().unwrap_or(0));
     Ok(())
 }
 
 pub async fn stop() -> anyhow::Result<()> {
-    use smarty_pants_core::protocol::Request;
-    use tokio::io::AsyncWriteExt;
-    use tokio::net::UnixStream;
-    let socket = paths::expand("$XDG_RUNTIME_DIR/smarty-pants.sock");
-    let Ok(mut stream) = UnixStream::connect(&socket).await else {
-        println!("daemon: not running");
-        return Ok(());
-    };
-    let body = serde_json::to_string(&Request::Shutdown)?;
-    stream.write_all(body.as_bytes()).await?;
-    stream.write_all(b"\n").await?;
-    println!("daemon stop requested");
-    Ok(())
+    crate::client::control(smarty_pants_core::protocol::Request::Shutdown).await
 }
 
 fn locate_daemon_binary() -> anyhow::Result<std::path::PathBuf> {

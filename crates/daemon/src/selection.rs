@@ -14,14 +14,14 @@ pub struct Captured {
 }
 
 pub async fn capture(
-    wl:                Arc<dyn Wayland>,
-    prefer_primary:    bool,
-    ctrl_c_settle_ms:  u64,
-    max_chars:         usize,
+    wl: Arc<dyn Wayland>,
+    prefer_primary: bool,
+    ctrl_c_settle_ms: u64,
+    max_chars: usize,
 ) -> anyhow::Result<Option<Captured>> {
     if prefer_primary {
         if let Some(s) = wl.read(ClipboardKind::Primary).await? {
-            let s = trim_and_cap(s, max_chars);
+            let s = trim_and_validate(s, max_chars)?;
             if !s.is_empty() {
                 return Ok(Some(Captured { text: s }));
             }
@@ -31,22 +31,23 @@ pub async fn capture(
     wl.type_combo("ctrl+c").await?;
     tokio::time::sleep(Duration::from_millis(ctrl_c_settle_ms)).await;
     let after = wl.read(ClipboardKind::Regular).await?;
-    let captured = after.and_then(|s| {
-        let s = trim_and_cap(s, max_chars);
-        (!s.is_empty()).then_some(s)
-    });
+    let captured = after
+        .map(|s| trim_and_validate(s, max_chars))
+        .transpose()?
+        .filter(|s| !s.is_empty());
     Ok(captured.map(|text| Captured { text }))
 }
 
-fn trim_and_cap(mut s: String, max_chars: usize) -> String {
+fn trim_and_validate(mut s: String, max_chars: usize) -> anyhow::Result<String> {
     let trimmed = s.trim();
     if trimmed.len() != s.len() {
         s = trimmed.to_owned();
     }
-    if s.chars().count() > max_chars {
-        s = s.chars().take(max_chars).collect();
-    }
-    s
+    anyhow::ensure!(
+        s.chars().count() <= max_chars,
+        "selection exceeds capture.max_chars ({max_chars}); select less text or raise the limit"
+    );
+    Ok(s)
 }
 
 #[cfg(test)]
@@ -54,7 +55,9 @@ mod tests {
     use super::*;
     use crate::wayland::mock::MockWayland;
 
-    fn arc(w: MockWayland) -> Arc<dyn Wayland> { Arc::new(w) }
+    fn arc(w: MockWayland) -> Arc<dyn Wayland> {
+        Arc::new(w)
+    }
 
     #[tokio::test]
     async fn returns_primary_when_present() {
@@ -74,7 +77,10 @@ mod tests {
         w.set_primary(None);
         w.set_regular(Some("highlighted text"));
         let arc_w = Arc::new(w);
-        let result = capture(arc_w.clone(), true, 0, 8000).await.unwrap().unwrap();
+        let result = capture(arc_w.clone(), true, 0, 8000)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(result.text, "highlighted text");
         assert!(arc_w.combos().contains(&"ctrl+c".to_owned()));
     }
@@ -89,11 +95,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn trims_and_caps_long_selection() {
+    async fn rejects_long_selection_instead_of_silently_dropping_its_tail() {
         let w = MockWayland::new();
         let big = "x".repeat(10_000);
         w.set_primary(Some(&big));
-        let result = capture(arc(w), true, 0, 8000).await.unwrap().unwrap();
-        assert_eq!(result.text.chars().count(), 8000);
+        assert!(capture(arc(w), true, 0, 8000).await.is_err());
     }
 }

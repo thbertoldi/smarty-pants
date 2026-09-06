@@ -11,9 +11,7 @@ pub fn expand(s: &str) -> PathBuf {
             // peek var name (alphanumeric + underscore)
             let start = i + 1;
             let mut end = start;
-            while end < bytes.len()
-                && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_')
-            {
+            while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
                 end += 1;
             }
             if end > start {
@@ -24,8 +22,9 @@ pub fn expand(s: &str) -> PathBuf {
                 continue;
             }
         }
-        out.push(s.as_bytes()[i] as char);
-        i += 1;
+        let c = s[i..].chars().next().expect("within string");
+        out.push(c);
+        i += c.len_utf8();
     }
     PathBuf::from(out)
 }
@@ -37,11 +36,11 @@ fn resolve_var(name: &str) -> String {
     // XDG defaults per spec
     let home = std::env::var("HOME").unwrap_or_default();
     match name {
-        "XDG_CONFIG_HOME"  => format!("{home}/.config"),
-        "XDG_DATA_HOME"    => format!("{home}/.local/share"),
-        "XDG_STATE_HOME"   => format!("{home}/.local/state"),
-        "XDG_RUNTIME_DIR"  => format!("/run/user/{}", nix_uid()),
-        _                  => format!("${name}"), // leave unknown vars literal
+        "XDG_CONFIG_HOME" => format!("{home}/.config"),
+        "XDG_DATA_HOME" => format!("{home}/.local/share"),
+        "XDG_STATE_HOME" => format!("{home}/.local/state"),
+        "XDG_RUNTIME_DIR" => format!("/run/user/{}", nix_uid()),
+        _ => format!("${name}"), // leave unknown vars literal
     }
 }
 
@@ -58,6 +57,14 @@ mod tests {
     // Serialize env-mutating tests in this module.
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
+    #[test]
+    fn preserves_unicode_in_custom_model_paths() {
+        assert_eq!(
+            expand("/tmp/revisão/modelo.gguf"),
+            PathBuf::from("/tmp/revisão/modelo.gguf")
+        );
+    }
+
     struct EnvGuard {
         keys: Vec<(&'static str, Option<String>)>,
     }
@@ -73,7 +80,7 @@ mod tests {
             for (k, v) in &self.keys {
                 match v {
                     Some(val) => std::env::set_var(k, val),
-                    None      => std::env::remove_var(k),
+                    None => std::env::remove_var(k),
                 }
             }
         }
@@ -86,7 +93,10 @@ mod tests {
         std::env::remove_var("XDG_CONFIG_HOME");
         std::env::set_var("HOME", "/home/tester");
         let p = expand("$XDG_CONFIG_HOME/smarty-pants/config.toml");
-        assert_eq!(p, PathBuf::from("/home/tester/.config/smarty-pants/config.toml"));
+        assert_eq!(
+            p,
+            PathBuf::from("/home/tester/.config/smarty-pants/config.toml")
+        );
     }
 
     #[test]
@@ -114,6 +124,9 @@ mod tests {
         std::env::remove_var("XDG_RUNTIME_DIR");
         let p = expand("$XDG_RUNTIME_DIR/smarty-pants.sock");
         let uid = unsafe { libc::getuid() };
-        assert_eq!(p, PathBuf::from(format!("/run/user/{uid}/smarty-pants.sock")));
+        assert_eq!(
+            p,
+            PathBuf::from(format!("/run/user/{uid}/smarty-pants.sock"))
+        );
     }
 }

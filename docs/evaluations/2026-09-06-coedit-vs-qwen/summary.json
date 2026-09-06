@@ -1,0 +1,244 @@
+{
+  "corpus_sha256": "a520de3c0f1373e2e93cbfccc1003a26141edc52b25e61192e824b21171f05de",
+  "models": {
+    "qwen": {
+      "all": {
+        "cases": 24,
+        "generation_errors": [],
+        "latency_ms": {
+          "median": 5591.0,
+          "min": 4383,
+          "max": 9196
+        },
+        "maximum_observed_peak_rss_kib": 1948608,
+        "literal_guard_blocks": [
+          "en-question",
+          "en-academic",
+          "en-linkedin"
+        ],
+        "language_detector_mismatches": [],
+        "fixture_literal_misses": {
+          "en-question": [
+            "2026-09-10"
+          ],
+          "en-academic": [
+            "24",
+            "18°C"
+          ],
+          "en-linkedin": [
+            "3"
+          ]
+        },
+        "fixture_forbidden_phrases": {},
+        "cases_with_unknown_input_tokens": null
+      },
+      "by_language": {
+        "English": {
+          "cases": 12,
+          "generation_errors": [],
+          "latency_ms": {
+            "median": 5165.0,
+            "min": 4383,
+            "max": 9016
+          },
+          "maximum_observed_peak_rss_kib": 1948608,
+          "literal_guard_blocks": [
+            "en-question",
+            "en-academic",
+            "en-linkedin"
+          ],
+          "language_detector_mismatches": [],
+          "fixture_literal_misses": {
+            "en-question": [
+              "2026-09-10"
+            ],
+            "en-academic": [
+              "24",
+              "18°C"
+            ],
+            "en-linkedin": [
+              "3"
+            ]
+          },
+          "fixture_forbidden_phrases": {},
+          "cases_with_unknown_input_tokens": null
+        },
+        "Portuguese": {
+          "cases": 12,
+          "generation_errors": [],
+          "latency_ms": {
+            "median": 5828.0,
+            "min": 4794,
+            "max": 9196
+          },
+          "maximum_observed_peak_rss_kib": 1948608,
+          "literal_guard_blocks": [],
+          "language_detector_mismatches": [],
+          "fixture_literal_misses": {},
+          "fixture_forbidden_phrases": {},
+          "cases_with_unknown_input_tokens": null
+        }
+      }
+    },
+    "coedit": {
+      "all": {
+        "cases": 24,
+        "generation_errors": [],
+        "latency_ms": {
+          "median": 1872.506,
+          "min": 998.12,
+          "max": 4643.512
+        },
+        "maximum_observed_peak_rss_kib": 3449664,
+        "literal_guard_blocks": [
+          "en-academic",
+          "pt-academic",
+          "en-linkedin",
+          "pt-linkedin",
+          "en-condense",
+          "pt-condense"
+        ],
+        "language_detector_mismatches": [
+          "pt-academic",
+          "pt-linkedin"
+        ],
+        "fixture_literal_misses": {
+          "en-academic": [
+            "18°C"
+          ],
+          "pt-academic": [
+            "18°C"
+          ],
+          "en-linkedin": [
+            "3"
+          ],
+          "pt-linkedin": [
+            "3"
+          ],
+          "en-condense": [
+            "`retry_count`",
+            "https://example.com/v1",
+            "\"ready\""
+          ],
+          "pt-condense": [
+            "`retry_count`",
+            "https://example.com/v1",
+            "\"ready\""
+          ],
+          "en-spelling": [
+            "João"
+          ],
+          "pt-accents": [
+            "João"
+          ]
+        },
+        "fixture_forbidden_phrases": {},
+        "cases_with_unknown_input_tokens": [
+          "pt-grammar",
+          "pt-uncertainty",
+          "pt-question",
+          "pt-academic",
+          "pt-linkedin",
+          "en-condense",
+          "pt-condense",
+          "pt-agreement",
+          "en-spelling",
+          "pt-accents",
+          "pt-correct",
+          "pt-negation",
+          "pt-email",
+          "pt-embedded-instruction"
+        ]
+      },
+      "by_language": {
+        "English": {
+          "cases": 12,
+          "generation_errors": [],
+          "latency_ms": {
+            "median": 1518.865,
+            "min": 998.12,
+            "max": 2751.068
+          },
+          "maximum_observed_peak_rss_kib": 3449664,
+          "literal_guard_blocks": [
+            "en-academic",
+            "en-linkedin",
+            "en-condense"
+          ],
+          "language_detector_mismatches": [],
+          "fixture_literal_misses": {
+            "en-academic": [
+              "18°C"
+            ],
+            "en-linkedin": [
+              "3"
+            ],
+            "en-condense": [
+              "`retry_count`",
+              "https://example.com/v1",
+              "\"ready\""
+            ],
+            "en-spelling": [
+              "João"
+            ]
+          },
+          "fixture_forbidden_phrases": {},
+          "cases_with_unknown_input_tokens": [
+            "en-condense",
+            "en-spelling"
+          ]
+        },
+        "Portuguese": {
+          "cases": 12,
+          "generation_errors": [],
+          "latency_ms": {
+            "median": 2702.017,
+            "min": 1763.524,
+            "max": 4643.512
+          },
+          "maximum_observed_peak_rss_kib": 3449664,
+          "literal_guard_blocks": [
+            "pt-academic",
+            "pt-linkedin",
+            "pt-condense"
+          ],
+          "language_detector_mismatches": [
+            "pt-academic",
+            "pt-linkedin"
+          ],
+          "fixture_literal_misses": {
+            "pt-academic": [
+              "18°C"
+            ],
+            "pt-linkedin": [
+              "3"
+            ],
+            "pt-condense": [
+              "`retry_count`",
+              "https://example.com/v1",
+              "\"ready\""
+            ],
+            "pt-accents": [
+              "João"
+            ]
+          },
+          "fixture_forbidden_phrases": {},
+          "cases_with_unknown_input_tokens": [
+            "pt-grammar",
+            "pt-uncertainty",
+            "pt-question",
+            "pt-academic",
+            "pt-linkedin",
+            "pt-condense",
+            "pt-agreement",
+            "pt-accents",
+            "pt-correct",
+            "pt-negation",
+            "pt-email",
+            "pt-embedded-instruction"
+          ]
+        }
+      }
+    }
+  }
+}

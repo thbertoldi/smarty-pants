@@ -1,5 +1,5 @@
 [Unit]
-Description=smarty-pants — local AI paraphraser daemon
+Description=smarty-pants — AI writing assistant
 Documentation=https://github.com/thbertoldi/smarty-pants
 # Start after the graphical session is available so the GlobalShortcuts
 # portal and the user's Wayland socket exist.
@@ -22,9 +22,12 @@ StandardError=journal
 # Tracing filter — bump to debug if you're diagnosing.
 Environment=RUST_LOG=info,smarty_pants=info
 
-# Reasonable resource limits. The Qwen 2.5 7B Q4 model needs ~5 GB RAM
-# (model weights) + ~1 GB compute + KV buffers. CPUSchedulingPriority
-# keeps it from monopolizing the CPU if it spikes.
+# For API credentials, configure api_key_file (also managed by the tray),
+# or add an EnvironmentFile in a user service override. Shell exports are
+# not automatically inherited by an already-running systemd user manager.
+
+# Allow optional larger local presets. The default has 1.1 GB of weights
+# and unloads after five idle minutes. API providers load no local weights.
 MemoryMax=10G
 Nice=5
 
