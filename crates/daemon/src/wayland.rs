@@ -139,6 +139,45 @@ pub mod real {
     use std::io::Read;
     use tokio::process::Command;
 
+    async fn hyprland_shortcut(
+        program: &std::ffi::OsStr,
+        mods: &str,
+        key: &str,
+    ) -> anyhow::Result<()> {
+        let lua = format!(
+            "hl.dsp.send_shortcut({{mods={},key={}}})",
+            serde_json::json!(mods),
+            serde_json::json!(key),
+        );
+        let mut output = Command::new(program)
+            .args(["dispatch", &lua])
+            .output()
+            .await
+            .map_err(|e| anyhow::anyhow!("spawn hyprctl: {e}"))?;
+
+        // Older compositors reject the Lua dispatcher before sending any keys.
+        // Retry only that rejection: other errors must not risk a second paste.
+        if String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .eq_ignore_ascii_case("invalid dispatcher")
+        {
+            let legacy = format!("{mods}, {key},");
+            output = Command::new(program)
+                .args(["dispatch", "sendshortcut", &legacy])
+                .output()
+                .await
+                .map_err(|e| anyhow::anyhow!("spawn hyprctl: {e}"))?;
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        anyhow::ensure!(
+            output.status.success() && stdout.trim() == "ok",
+            "Hyprland shortcut failed: {} {}",
+            stdout.trim(),
+            String::from_utf8_lossy(&output.stderr).trim(),
+        );
+        Ok(())
+    }
+
     pub struct RealWayland;
 
     impl RealWayland {
@@ -213,7 +252,7 @@ pub mod real {
         async fn type_combo(&self, combo: &str) -> anyhow::Result<()> {
             // combo formatted as "ctrl+v" or "ctrl+c".
             //
-            // On Hyprland we prefer `hyprctl dispatch sendshortcut`, which uses
+            // On Hyprland we prefer the native shortcut dispatcher, which uses
             // the compositor's own input synthesis pipeline. wtype's
             // virtual-keyboard protocol path silently no-ops on at least some
             // Hyprland versions (observed on Hyprland 0.52.x with wtype 0.4) —
@@ -231,7 +270,8 @@ pub mod real {
             };
 
             if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some() {
-                // Format: `hyprctl dispatch sendshortcut "MODS, KEY,"`
+                // Lua Hyprland uses hl.dsp.send_shortcut({mods, key}); older
+                // versions use `hyprctl dispatch sendshortcut "MODS, KEY,"`.
                 // MODS is space-separated uppercase ("CTRL", "CTRL SHIFT").
                 // Key is the X11 keysym name; uppercase letter is the
                 // convention Hyprland uses elsewhere.
@@ -241,30 +281,9 @@ pub mod real {
                     .collect::<Vec<_>>()
                     .join(" ");
                 let key_arg = key.to_ascii_uppercase();
-                let arg = format!("{mods_arg}, {key_arg},");
-                tracing::info!(arg = %arg, "synth via hyprctl dispatch sendshortcut");
-                let output = Command::new("hyprctl")
-                    .args(["dispatch", "sendshortcut", &arg])
-                    .output()
-                    .await
-                    .map_err(|e| anyhow::anyhow!("spawn hyprctl: {e}"))?;
-                if !output.status.success() {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    return Err(anyhow::anyhow!(
-                        "hyprctl dispatch sendshortcut exited {} stderr={stderr}",
-                        output.status
-                    ));
-                }
-                // hyprctl prints "ok" on success and a non-"ok" body on
-                // failure even when exit status is 0 — defensive check.
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                if !stdout.trim().starts_with("ok") {
-                    return Err(anyhow::anyhow!(
-                        "hyprctl dispatch sendshortcut returned: {}",
-                        stdout.trim()
-                    ));
-                }
-                return Ok(());
+                tracing::info!(combo = %combo, "synth via Hyprland shortcut dispatcher");
+                return hyprland_shortcut(std::ffi::OsStr::new("hyprctl"), &mods_arg, &key_arg)
+                    .await;
             }
 
             // Non-Hyprland fallback: wtype with `-M MOD -k KEY` form.
@@ -286,6 +305,60 @@ pub mod real {
                 ));
             }
             Ok(())
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use std::os::unix::fs::PermissionsExt;
+
+        fn fake_hyprctl(reply: &str, code: u8) -> tempfile::TempDir {
+            let dir = tempfile::tempdir().unwrap();
+            let program = dir.path().join("hyprctl");
+            std::fs::write(
+                &program,
+                format!(
+                    "#!/bin/sh\ncd -- \"$(dirname -- \"$0\")\"\nprintf '%s\\n' \"$*\" >> calls\nif [ \"$2\" = sendshortcut ]; then printf 'ok\\n'; exit 0; fi\nprintf '%s\\n' '{reply}'\nexit {code}\n"
+                ),
+            )
+            .unwrap();
+            std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+            dir
+        }
+
+        #[tokio::test]
+        async fn lua_success_sends_only_one_shortcut() {
+            let dir = fake_hyprctl("ok", 0);
+            hyprland_shortcut(dir.path().join("hyprctl").as_os_str(), "CTRL SHIFT", "V")
+                .await
+                .unwrap();
+            let calls = std::fs::read_to_string(dir.path().join("calls")).unwrap();
+            assert_eq!(calls.lines().count(), 1);
+            assert!(calls.contains("hl.dsp.send_shortcut"));
+        }
+
+        #[tokio::test]
+        async fn unknown_dispatcher_retries_with_the_legacy_protocol() {
+            let dir = fake_hyprctl("Invalid dispatcher", 1);
+            hyprland_shortcut(dir.path().join("hyprctl").as_os_str(), "CTRL", "C")
+                .await
+                .unwrap();
+            let calls = std::fs::read_to_string(dir.path().join("calls")).unwrap();
+            assert_eq!(calls.lines().count(), 2);
+            assert_eq!(calls.lines().last(), Some("dispatch sendshortcut CTRL, C,"));
+        }
+
+        #[tokio::test]
+        async fn an_action_error_never_retries_even_with_a_success_exit_code() {
+            let dir = fake_hyprctl("window not found", 0);
+            assert!(
+                hyprland_shortcut(dir.path().join("hyprctl").as_os_str(), "CTRL", "V")
+                    .await
+                    .is_err()
+            );
+            let calls = std::fs::read_to_string(dir.path().join("calls")).unwrap();
+            assert_eq!(calls.lines().count(), 1);
         }
     }
 }
