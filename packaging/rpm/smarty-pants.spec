@@ -47,6 +47,9 @@ cargo test --release --frozen --workspace --no-default-features --features smart
 desktop-file-validate packaging/linux/computer.smarty-pants.desktop
 
 %install
+export CARGO_HOME=$PWD/.cargo-home
+export CARGO_NET_OFFLINE=true
+python3 scripts/bundle-licenses.py cpu target/dependency-licenses
 install -Dm755 target/release/smarty-pants %{buildroot}%{_bindir}/smarty-pants
 install -Dm755 target/release/smarty-pants-daemon %{buildroot}%{_bindir}/smarty-pants-daemon
 install -Dm644 packaging/linux/computer.smarty-pants.desktop %{buildroot}%{_datadir}/applications/computer.smarty-pants.desktop
@@ -57,6 +60,7 @@ sed -i 's|ExecStart=.*|ExecStart=%{_bindir}/smarty-pants-daemon|' %{buildroot}%{
 
 %files
 %license LICENSE
+%license target/dependency-licenses
 %doc README.md CHANGELOG.md docs/limitations.md
 %{_bindir}/smarty-pants
 %{_bindir}/smarty-pants-daemon
