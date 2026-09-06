@@ -184,7 +184,7 @@ mod tests {
         let mut buf = String::new();
         client.read_to_string(&mut buf).await.unwrap();
         let resp: Response = serde_json::from_str(buf.trim()).unwrap();
-        assert!(matches!(resp, Response::Ok { .. }));
+        assert!(matches!(resp, Response::Copied { .. }));
 
         h.abort();
     }

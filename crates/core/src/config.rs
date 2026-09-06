@@ -230,6 +230,7 @@ impl Default for CaptureCfg {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(default, deny_unknown_fields)]
 pub struct InjectCfg {
+    pub delivery: Delivery,
     pub restore_clipboard: bool,
     pub paste_settle_ms: u64,
 }
@@ -246,8 +247,28 @@ impl Default for InjectCfg {
         // paste_settle_ms: 200ms is a generous-but-not-annoying window for
         // any focused app to consume the clipboard before we touch it again.
         Self {
+            delivery: Delivery::Paste,
             restore_clipboard: false,
             paste_settle_ms: 200,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Delivery {
+    #[default]
+    Paste,
+    Copy,
+    Review,
+}
+
+impl Delivery {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Paste => "paste",
+            Self::Copy => "copy",
+            Self::Review => "review",
         }
     }
 }

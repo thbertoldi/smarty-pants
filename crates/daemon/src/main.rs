@@ -1,6 +1,7 @@
 //! Daemon lifecycle: settings, IPC, shortcuts and tray start before model load.
 
 use anyhow::Context;
+use clap::Parser;
 use smarty_pants_core::{config::Config, paths};
 use smarty_pants_daemon::{
     backend,
@@ -12,8 +13,13 @@ use smarty_pants_daemon::{
 };
 use std::sync::Arc;
 
+#[derive(Parser)]
+#[command(version, about = "smarty-pants writing assistant daemon for Wayland")]
+struct Args {}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    Args::parse();
     let config_path = paths::expand("$XDG_CONFIG_HOME/smarty-pants/config.toml");
     let cfg = Arc::new(Config::load(&config_path).context("load config")?);
     init_tracing(&cfg.daemon.log_level);

@@ -3,7 +3,7 @@
 use crate::{model_download::PRESETS, settings::Settings};
 use ksni::{menu::*, TrayMethods};
 use smarty_pants_core::{
-    config::{Config, Provider},
+    config::{Config, Delivery, Provider},
     config_file,
     protocol::{Response, SettingChange},
 };
@@ -18,6 +18,7 @@ enum Action {
     OpenConfig,
     ApiConnection(Option<Provider>),
     ApiKey,
+    ApiModel,
     Unload,
     Quit,
 }
@@ -153,6 +154,53 @@ impl ksni::Tray for WritingTray {
                 .into(),
             );
         }
+        let api_models = if cfg.inference.provider == Provider::Deepseek {
+            vec![
+                self.check(
+                    "DeepSeek V4 Flash",
+                    cfg.deepseek.model == "deepseek-v4-flash",
+                    SettingChange::ApiModel {
+                        provider: Provider::Deepseek,
+                        model: "deepseek-v4-flash".into(),
+                    },
+                    true,
+                ),
+                self.check(
+                    "DeepSeek V4 Pro",
+                    cfg.deepseek.model == "deepseek-v4-pro",
+                    SettingChange::ApiModel {
+                        provider: Provider::Deepseek,
+                        model: "deepseek-v4-pro".into(),
+                    },
+                    true,
+                ),
+                self.item("Custom model…", Action::ApiModel, true),
+            ]
+        } else {
+            vec![self.item("Change model…", Action::ApiModel, !local)]
+        };
+        let deliveries = [Delivery::Paste, Delivery::Copy, Delivery::Review];
+        let delivery_menu = RadioGroup {
+            selected: deliveries
+                .iter()
+                .position(|d| *d == cfg.inject.delivery)
+                .unwrap_or(0),
+            options: ["Paste automatically", "Copy only", "Review, then copy…"]
+                .iter()
+                .map(|label| RadioItem {
+                    label: (*label).into(),
+                    enabled: !self.working,
+                    ..Default::default()
+                })
+                .collect(),
+            select: Box::new(move |tray: &mut Self, index| {
+                if let Some(delivery) = deliveries.get(index) {
+                    tray.send(Action::Change(SettingChange::Delivery {
+                        delivery: *delivery,
+                    }));
+                }
+            }),
+        };
         let mut menu = vec![
             StandardItem {
                 label: self.summary.replace('_', "__"),
@@ -182,6 +230,13 @@ impl ksni::Tray for WritingTray {
                 ..Default::default()
             }
             .into(),
+            SubMenu {
+                label: "API model".into(),
+                enabled: !local,
+                submenu: api_models,
+                ..Default::default()
+            }
+            .into(),
             self.item(
                 "API connection…",
                 Action::ApiConnection(if local {
@@ -197,12 +252,17 @@ impl ksni::Tray for WritingTray {
                 enabled: local,
                 submenu: vec![
                     self.check(
-                        "Use GPU when available",
-                        cfg.model.gpu_layers != 0,
+                        if cfg!(any(feature = "vulkan", feature = "cuda", feature = "rocm")) {
+                            "Use GPU when available"
+                        } else {
+                            "GPU unavailable in this build"
+                        },
+                        cfg.model.gpu_layers != 0
+                            && cfg!(any(feature = "vulkan", feature = "cuda", feature = "rocm")),
                         SettingChange::Gpu {
                             enabled: cfg.model.gpu_layers == 0,
                         },
-                        local,
+                        local && cfg!(any(feature = "vulkan", feature = "cuda", feature = "rocm")),
                     ),
                     self.check(
                         "Keep model loaded",
@@ -217,13 +277,19 @@ impl ksni::Tray for WritingTray {
                 ..Default::default()
             }
             .into(),
+            SubMenu {
+                label: "Rewrite delivery".into(),
+                submenu: vec![delivery_menu.into()],
+                ..Default::default()
+            }
+            .into(),
             self.check(
                 "Restore previous clipboard",
                 cfg.inject.restore_clipboard,
                 SettingChange::RestoreClipboard {
                     enabled: !cfg.inject.restore_clipboard,
                 },
-                true,
+                cfg.inject.delivery == Delivery::Paste,
             ),
             MenuItem::Separator,
             self.item("Edit configuration…", Action::OpenConfig, true),
@@ -318,6 +384,7 @@ fn summary(status: Response) -> (String, Option<String>) {
         paused,
         busy,
         last_error,
+        last_result,
         ..
     } = status
     else {
@@ -335,6 +402,11 @@ fn summary(status: Response) -> (String, Option<String>) {
         "Ready"
     } else {
         "Ready (loads on first rewrite)"
+    };
+    let state = if !busy && !paused {
+        last_result.as_deref().unwrap_or(state)
+    } else {
+        state
     };
     (format!("{state} · {provider} · {model}"), last_error)
 }
@@ -358,6 +430,29 @@ async fn perform(action: Action, settings: Arc<Settings>) -> anyhow::Result<()> 
         }
         Action::ApiConnection(provider) => edit_api_connection(settings, provider).await,
         Action::ApiKey => set_api_key(settings).await,
+        Action::ApiModel => {
+            let cfg = settings.pipeline.config().await;
+            let api = cfg
+                .api_config()
+                .ok_or_else(|| anyhow::anyhow!("Select an API provider first"))?;
+            if let Some(model) = dialog(&[
+                "--entry",
+                "--title=smarty-pants API model",
+                "--text=Model ID from your API provider",
+                "--entry-text",
+                &api.model,
+            ])
+            .await?
+            {
+                settings
+                    .change(SettingChange::ApiModel {
+                        provider: cfg.inference.provider,
+                        model,
+                    })
+                    .await?;
+            }
+            Ok(())
+        }
         Action::Quit => Ok(()),
     }
 }

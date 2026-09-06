@@ -1,5 +1,13 @@
 # Install smarty-pants with DeepSeek: instructions for another agent
 
+## Quick path: use a release binary
+
+For a new installation, follow [the binary installer guide](install.md#downloaded-binaries) and choose the **API** bundle. This skips Rust, C++, Vulkan and model downloads. Open Smarty Pants, select **Provider → DeepSeek**, enter the key through **Set API key…**, and choose **API model → DeepSeek V4 Flash** or **DeepSeek V4 Pro**. Model changes apply immediately and preserve the endpoint and key. Use **Rewrite delivery → Review, then copy…** for the first English/Portuguese checks.
+
+If upgrading the existing environment described below, inspect the current service first. Release binaries install under `~/.local/bin`; the earlier source installation uses `~/.cargo/bin`. The installer preserves a custom service and writes a `.service.new` suggestion. Update `ExecStart` deliberately and restart the service to run the new binary. Keep user configuration, service drop-ins, and API keys.
+
+The detailed procedure below remains available for **source installation**, existing-service diagnosis, and agent handoff.
+
 Install or upgrade smarty-pants on the user's openSUSE Tumbleweed / Hyprland
 desktop, enable the tray, and configure direct DeepSeek inference for English
 and Portuguese writing. Use the API-only build unless the user also wants local

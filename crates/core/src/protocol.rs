@@ -32,6 +32,9 @@ pub enum SettingChange {
     RestoreClipboard {
         enabled: bool,
     },
+    Delivery {
+        delivery: crate::config::Delivery,
+    },
     Paused {
         paused: bool,
     },
@@ -47,6 +50,10 @@ pub enum SettingChange {
         provider: crate::config::Provider,
         path: String,
     },
+    ApiModel {
+        provider: crate::config::Provider,
+        model: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -56,6 +63,12 @@ pub enum Response {
         generated_chars: usize,
         ms: u64,
     },
+    Copied {
+        generated_chars: usize,
+        ms: u64,
+        reason: String,
+    },
+    Cancelled,
     Empty,
     Busy,
     Paused,
@@ -74,6 +87,8 @@ pub enum Response {
         busy: bool,
         #[serde(default)]
         last_error: Option<String>,
+        #[serde(default)]
+        last_result: Option<String>,
     },
     Error {
         // Field is `error_kind` because the enum's serde tag is `kind`;

@@ -1,8 +1,6 @@
 //! Abstraction over Wayland clipboard + keystroke synthesis.
 //!
-//! `RealWayland` (added in Task 8) lives in the same file behind a sub-module
-//! so unit tests can be written against `MockWayland` without linking
-//! `wl-clipboard-rs`.
+//! Unit tests use `MockWayland` without accessing the desktop clipboard.
 
 use async_trait::async_trait;
 
@@ -20,6 +18,8 @@ pub trait Wayland: Send + Sync + 'static {
     async fn write_regular(&self, text: &str) -> anyhow::Result<()>;
     /// Synthesize a single key combo like "ctrl+c" or "ctrl+v".
     async fn type_combo(&self, combo: &str) -> anyhow::Result<()>;
+    async fn focused_window(&self) -> Option<crate::focus::Window>;
+    async fn review(&self, original: &str, generated: &str) -> anyhow::Result<bool>;
 }
 
 // ── in-memory mock for unit tests ─────────────────────────────────────
@@ -38,6 +38,9 @@ pub mod mock {
         /// If set, a Ctrl+C combo causes `primary` to be copied into `regular`
         /// so the selection capture loop sees something.
         pub ctrl_c_copies_primary_into_regular: bool,
+        pub focus: Mutex<Option<crate::focus::Window>>,
+        pub review_accepted: bool,
+        pub reviews: Mutex<Vec<(String, String)>>,
     }
 
     impl MockWayland {
@@ -72,13 +75,26 @@ pub mod mock {
 
         async fn type_combo(&self, combo: &str) -> anyhow::Result<()> {
             self.combos.lock().unwrap().push(combo.to_owned());
-            if combo == "ctrl+c" && self.ctrl_c_copies_primary_into_regular {
+            if matches!(combo, "ctrl+c" | "ctrl+shift+c") && self.ctrl_c_copies_primary_into_regular
+            {
                 let p = self.primary.lock().unwrap().clone();
                 if let Some(p) = p {
                     *self.regular.lock().unwrap() = Some(p);
                 }
             }
             Ok(())
+        }
+
+        async fn focused_window(&self) -> Option<crate::focus::Window> {
+            self.focus.lock().unwrap().clone()
+        }
+
+        async fn review(&self, original: &str, generated: &str) -> anyhow::Result<bool> {
+            self.reviews
+                .lock()
+                .unwrap()
+                .push((original.into(), generated.into()));
+            Ok(self.review_accepted)
         }
     }
 }
@@ -139,6 +155,14 @@ pub mod real {
 
     #[async_trait]
     impl Wayland for RealWayland {
+        async fn focused_window(&self) -> Option<crate::focus::Window> {
+            crate::focus::current().await
+        }
+
+        async fn review(&self, original: &str, generated: &str) -> anyhow::Result<bool> {
+            crate::review::show(original, generated).await
+        }
+
         async fn read(&self, kind: ClipboardKind) -> anyhow::Result<Option<String>> {
             use wl_clipboard_rs::paste::{get_contents, ClipboardType, Error, MimeType, Seat};
             let target = match kind {
@@ -148,10 +172,17 @@ pub mod real {
             // wl-clipboard-rs is sync — run on blocking pool.
             let result = tokio::task::spawn_blocking(move || {
                 match get_contents(target, Seat::Unspecified, MimeType::Text) {
-                    Ok((mut pipe, _)) => {
+                    Ok((pipe, _)) => {
                         let mut buf = String::new();
-                        pipe.read_to_string(&mut buf)
+                        // Bound allocations even before capture.max_chars is checked.
+                        const MAX_BYTES: u64 = 4 * 1024 * 1024;
+                        pipe.take(MAX_BYTES + 1)
+                            .read_to_string(&mut buf)
                             .map_err(|e| anyhow::anyhow!("read clipboard pipe: {e}"))?;
+                        anyhow::ensure!(
+                            buf.len() as u64 <= MAX_BYTES,
+                            "clipboard text exceeds 4 MiB"
+                        );
                         Ok::<Option<String>, anyhow::Error>(Some(buf))
                     }
                     // Treat "no seats" / "empty clipboard" / "no MIME type" as

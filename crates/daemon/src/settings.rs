@@ -66,6 +66,12 @@ impl Settings {
                 SettingChange::RestoreClipboard { enabled } => {
                     file.set("inject", "restore_clipboard", *enabled)
                 }
+                SettingChange::Delivery { delivery } => {
+                    file.set("inject", "delivery", delivery.as_str())
+                }
+                SettingChange::ApiModel { provider, model } => {
+                    file.set(api_section(*provider)?, "model", model.trim())
+                }
                 SettingChange::Paused { paused } => file.set("daemon", "paused", *paused),
                 SettingChange::ApiConnection {
                     provider,
@@ -92,7 +98,11 @@ impl Settings {
             }
         }
         let cfg = file.config()?;
-        if let Some(SettingChange::ApiConnection { provider, .. }) = &change {
+        if let Some(
+            SettingChange::ApiConnection { provider, .. }
+            | SettingChange::ApiModel { provider, .. },
+        ) = &change
+        {
             let mut validation = cfg.clone();
             validation.inference.provider = *provider;
             validation.validate()?;
@@ -151,6 +161,41 @@ fn api_section(provider: Provider) -> anyhow::Result<&'static str> {
 mod tests {
     use super::*;
     use crate::{llm::EchoLlm, wayland::mock::MockWayland};
+
+    #[tokio::test]
+    async fn changing_api_model_preserves_connection_and_key_and_rejects_empty_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        std::fs::write(&path, "[inference]\nprovider='deepseek'\n[deepseek]\nbase_url='https://api.deepseek.com'\napi_key_file='/tmp/test.key'\n# keep this comment\n").unwrap();
+        let pipeline = Arc::new(Pipeline::new(
+            Arc::new(MockWayland::new()),
+            Arc::new(EchoLlm),
+            Arc::new(Config::load(&path).unwrap()),
+        ));
+        let settings = Settings::new(pipeline.clone(), path.clone()).await;
+        settings
+            .change(SettingChange::ApiModel {
+                provider: Provider::Deepseek,
+                model: "deepseek-v4-pro".into(),
+            })
+            .await
+            .unwrap();
+        let cfg = pipeline.config().await;
+        assert_eq!(cfg.deepseek.model, "deepseek-v4-pro");
+        assert_eq!(cfg.deepseek.base_url, "https://api.deepseek.com");
+        assert_eq!(cfg.deepseek.api_key_file.as_deref(), Some("/tmp/test.key"));
+        let saved = std::fs::read_to_string(&path).unwrap();
+        assert!(saved.contains("# keep this comment"));
+        assert!(settings
+            .change(SettingChange::ApiModel {
+                provider: Provider::Deepseek,
+                model: "  ".into()
+            })
+            .await
+            .is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), saved);
+        assert_eq!(pipeline.config().await.deepseek.model, "deepseek-v4-pro");
+    }
 
     #[tokio::test]
     async fn invalid_reload_keeps_working_configuration() {

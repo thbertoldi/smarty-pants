@@ -3,11 +3,11 @@ resolver = "2"
 members  = ["crates/core", "crates/daemon", "crates/cli"]
 
 [workspace.package]
-version    = "0.1.0"
+version    = "0.2.0"
 edition    = "2021"
 license    = "MPL-2.0"
 repository = "https://github.com/thbertoldi/smarty-pants"
-rust-version = "1.75"
+rust-version = "1.88"
 
 [workspace.dependencies]
 anyhow              = "1"

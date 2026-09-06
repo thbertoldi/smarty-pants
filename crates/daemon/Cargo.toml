@@ -24,6 +24,7 @@ tray        = ["dep:ksni"]
 live-model  = ["local"]
 
 [dependencies]
+clap               = { workspace = true }
 smarty-pants-core   = { path = "../core" }
 anyhow              = { workspace = true }
 thiserror           = { workspace = true }

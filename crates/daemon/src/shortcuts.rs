@@ -80,9 +80,6 @@ pub async fn run_session(cfg: &Config, dispatcher: Arc<Dispatcher>) -> anyhow::R
 
     let mut activations = portal.receive_activated().await?;
     while let Some(act) = activations.next().await {
-        // ashpd's Activated exposes a `shortcut_id()` accessor. If the actual
-        // method name in your ashpd version differs (e.g., `.id()` or a public
-        // field), adapt the call here and report the adaptation.
         let id = act.shortcut_id().to_owned();
         let d = dispatcher.clone();
         tokio::spawn(async move { d.handle_activation(&id).await });

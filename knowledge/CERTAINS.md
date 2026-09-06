@@ -37,3 +37,18 @@
 - The installation documentation's shell syntax, TOML snippets, and local links passed checks; the packaged unit passed `systemd-analyze --user verify`.
 - An API-only workspace build and private D-Bus check verified startup from the DeepSeek example without credentials, CLI status/reload, four inherited modes, tray menu export, and clean shutdown. The check triggered no rewrite or live API call and created no model data directory.
 - During the documentation review, the existing installed service was active, the user config file did not exist, Waybar's tray module was enabled, and Hyprland's portal reported no registered global shortcuts. Installation instructions record these as dated observations to recheck.
+
+## Installation and delivery review (0.2.0)
+
+- Delivery settings now support automatic paste, copy only, and an explicit Zenity review/copy dialog. Review text travels over stdin rather than process arguments.
+- Automatic paste compares the captured window identity with the current identity; unknown or changed focus leaves the generated text on the clipboard. Focus parsing supports Hyprland addresses, Sway container IDs and niri window IDs.
+- Synthetic Copy must change the regular clipboard before it is accepted as a selection. Unknown window identities skip this fallback. Recognized terminals use Ctrl+Shift+C and Ctrl+Shift+V.
+- Optional restoration after automatic paste uses the clipboard saved before capture. Copy and review delivery retain the generated text for manual paste.
+- The tray has a dedicated API model menu. Model-only changes preserve endpoint and credential settings and reject blank model IDs.
+- Detached CLI startup waits for daemon readiness, recognizes an already running daemon, and reports startup failures with an XDG state log path.
+- Clipboard text reads are capped at 4 MiB before the selection character check.
+- The post-update Cargo audit reported no vulnerabilities and no warnings using cargo-audit 0.22.2 and RustSec database commit 5a0ebedfe8bdd2e295b171f4162f8c977bcad9a5. Updated packages include wayland-scanner/quick-xml, quinn-proto, anyhow and event-listener.
+- Local strict Clippy and API/default-feature tests passed. Isolated API startup/tray and lifecycle checks passed without accessing the desktop clipboard, making live API requests, or downloading models.
+- A bundle made with local API binaries passed fresh install, paths-with-spaces, upgrade preservation and uninstall checks in temporary XDG directories. The RPM spec parses and documentation links, shell scripts and desktop metadata pass their checks.
+- llama.cpp's CMake configuration enables optional x86 instructions by default when GGML_NATIVE is off unless SOURCE_DATE_EPOCH is set. Release/RPM builds set that environment variable and verify the resulting CMake flags alongside a generic Rust x86_64 target.
+- GitHub release automation and an offline RPM/OBS source recipe are included. OBS publication and full Sway/niri desktop testing have not been performed.

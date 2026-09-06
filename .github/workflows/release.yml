@@ -1,0 +1,69 @@
+name: Release
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [cpu, api]
+    env:
+      # x86-64 baseline; never compile release assets for the runner's native CPU.
+      RUSTFLAGS: -C target-cpu=x86-64
+      CMAKE_BUILD_PARALLEL_LEVEL: 2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake desktop-file-utils wtype wl-clipboard
+      - run: rustup toolchain install 1.91.1 --profile minimal && rustup override set 1.91.1
+      - name: Set portable native-library defaults
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+      - name: Build and test
+        env:
+          FLAVOR: ${{ matrix.flavor }}
+        run: |
+          features=tray
+          if [ "$FLAVOR" = cpu ]; then features=local,tray; fi
+          cargo test --workspace --locked --no-default-features --features "smarty-pants-daemon/$features"
+          cargo build --release --workspace --locked --no-default-features --features "smarty-pants-daemon/$features"
+          if [ "$FLAVOR" = cpu ]; then python3 scripts/check-portable-build.py; fi
+          strip target/release/smarty-pants target/release/smarty-pants-daemon
+      - name: Package and verify installation
+        env:
+          FLAVOR: ${{ matrix.flavor }}
+        run: |
+          scripts/package-release.sh "$FLAVOR"
+          mkdir target/unpacked
+          tar -xzf target/dist/*.tar.gz -C target/unpacked
+          python3 scripts/test-installer.py target/unpacked/*
+          python3 scripts/test-lifecycle.py target/release
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-${{ matrix.flavor }}
+          path: target/dist/*
+          if-no-files-found: error
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: bundle
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: linux-*
+          path: dist
+          merge-multiple: true
+      - name: Publish versioned downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version=$(sed -n 's/^version *= *"\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
+          test "$RELEASE_TAG" = "v$version"
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Smarty Pants $version" --notes-file docs/release-notes.md

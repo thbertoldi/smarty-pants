@@ -153,7 +153,7 @@ struct Message {
     #[serde(default)]
     refusal: Option<String>,
     #[serde(default)]
-    tool_calls: Vec<serde_json::Value>,
+    tool_calls: Option<Vec<serde_json::Value>>,
 }
 
 fn parse_completion(bytes: &[u8]) -> anyhow::Result<String> {
@@ -173,7 +173,7 @@ fn parse_completion(bytes: &[u8]) -> anyhow::Result<String> {
     );
     anyhow::ensure!(
         choice.message.refusal.as_deref().unwrap_or("").is_empty()
-            && choice.message.tool_calls.is_empty(),
+            && choice.message.tool_calls.as_ref().is_none_or(Vec::is_empty),
         "API declined to return a rewrite"
     );
     let content = choice.message.content.unwrap_or_default();
@@ -185,6 +185,12 @@ fn parse_completion(bytes: &[u8]) -> anyhow::Result<String> {
 mod tests {
     use super::*;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[test]
+    fn accepts_explicit_null_tool_calls_as_text_only() {
+        let response = r#"{"choices":[{"finish_reason":"stop","message":{"content":"Olá!","tool_calls":null}}]}"#;
+        assert_eq!(parse_completion(response.as_bytes()).unwrap(), "Olá!");
+    }
 
     #[test]
     fn rejects_incomplete_or_non_text_answers() {

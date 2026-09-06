@@ -38,6 +38,13 @@ enabled = true
 [writing]
 preserve_literals = true  # reject changed numbers, links, email addresses, or code
 
+[inject]
+# paste checks the source window; copy lets you paste manually.
+# review opens a Zenity dialog and copies only after you choose Copy rewrite.
+delivery = "paste"  # "paste", "copy", or "review"
+restore_clipboard = false
+paste_settle_ms = 200
+
 [modes.rewrite]
 shortcut    = "SUPER+SHIFT+P"
 description = "Paraphrase: rewrite in different words"

@@ -13,8 +13,20 @@ pub async fn run(mode: &str) -> anyhow::Result<()> {
             eprintln!("ok — paraphrased {generated_chars} chars in {ms} ms");
             Ok(())
         }
+        Response::Copied {
+            generated_chars,
+            ms,
+            reason,
+        } => {
+            eprintln!("copied {generated_chars} chars in {ms} ms — {reason}");
+            Ok(())
+        }
+        Response::Cancelled => {
+            eprintln!("rewrite discarded");
+            Ok(())
+        }
         Response::Empty => {
-            eprintln!("no text selected");
+            eprintln!("no new selection captured; select text that exposes PRIMARY, or ensure Copy changes the clipboard");
             std::process::exit(3)
         }
         Response::Paused => {

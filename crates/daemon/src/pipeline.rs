@@ -24,6 +24,7 @@ pub struct Pipeline {
     runtime: RwLock<Runtime>,
     inflight: Mutex<()>,
     last_error: RwLock<Option<String>>,
+    last_result: RwLock<Option<String>>,
 }
 
 impl Pipeline {
@@ -33,6 +34,7 @@ impl Pipeline {
             runtime: RwLock::new(Runtime { cfg, llm }),
             inflight: Mutex::new(()),
             last_error: RwLock::new(None),
+            last_result: RwLock::new(None),
         }
     }
 
@@ -91,6 +93,7 @@ impl Pipeline {
             paused: cfg.daemon.paused,
             busy: self.inflight.try_lock().is_err(),
             last_error: self.last_error.read().await.clone(),
+            last_result: self.last_result.read().await.clone(),
         }
     }
 
@@ -109,11 +112,25 @@ impl Pipeline {
         let started = Instant::now();
         let result = self.run_inner(mode_name, &cfg, llm).await;
         *self.last_error.write().await = result.as_ref().err().map(|(_, message)| message.clone());
+        *self.last_result.write().await = match &result {
+            Ok(Some((_, inject::Outcome::Copied(reason)))) => Some(format!("Copied · {reason}")),
+            Ok(Some((_, inject::Outcome::Cancelled))) => Some("Rewrite discarded".into()),
+            Ok(Some((_, inject::Outcome::Pasted))) => Some("Rewrite pasted".into()),
+            Ok(None) => Some("No new selection captured".into()),
+            Err(_) => None,
+        };
+        let ms = started.elapsed().as_millis() as u64;
         match result {
-            Ok(Some(chars)) => Response::Ok {
+            Ok(Some((chars, inject::Outcome::Pasted))) => Response::Ok {
                 generated_chars: chars,
-                ms: started.elapsed().as_millis() as u64,
+                ms,
             },
+            Ok(Some((chars, inject::Outcome::Copied(reason)))) => Response::Copied {
+                generated_chars: chars,
+                ms,
+                reason: reason.into(),
+            },
+            Ok(Some((_, inject::Outcome::Cancelled))) => Response::Cancelled,
             Ok(None) => Response::Empty,
             Err((kind, message)) => Response::Error {
                 error_kind: kind,
@@ -127,7 +144,7 @@ impl Pipeline {
         mode_name: &str,
         cfg: &Config,
         llm: Arc<dyn Llm>,
-    ) -> Result<Option<usize>, (ErrorKind, String)> {
+    ) -> Result<Option<(usize, inject::Outcome)>, (ErrorKind, String)> {
         let mode = cfg
             .modes
             .get(mode_name)
@@ -171,15 +188,10 @@ impl Pipeline {
                 .map_err(|e| (ErrorKind::Inference, e.to_string()))?;
         }
         tracing::info!(chars = generated.chars().count(), "llm generated");
-        inject::write(
-            self.wl.clone(),
-            &generated,
-            cfg.inject.paste_settle_ms,
-            cfg.inject.restore_clipboard,
-        )
-        .await
-        .map_err(|e| (ErrorKind::Inject, e.to_string()))?;
-        Ok(Some(generated.chars().count()))
+        let outcome = inject::write(self.wl.clone(), &captured, &generated, &cfg.inject)
+            .await
+            .map_err(|e| (ErrorKind::Inject, e.to_string()))?;
+        Ok(Some((generated.chars().count(), outcome)))
     }
 }
 
@@ -267,6 +279,10 @@ mod tests {
     #[tokio::test]
     async fn happy_path_returns_ok_and_pastes() {
         let wl = Arc::new(MockWayland::new());
+        *wl.focus.lock().unwrap() = Some(crate::focus::Window {
+            id: "sway:1".into(),
+            app_id: "firefox".into(),
+        });
         wl.set_primary(Some("Hello world."));
         let pipe = Pipeline::new(wl.clone(), Arc::new(EchoLlm), cfg_with_mode());
 

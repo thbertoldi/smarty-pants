@@ -28,7 +28,9 @@ async fn happy_path_via_socket_uses_echo_llm_and_writes_clipboard() {
     client.read_to_string(&mut buf).await.unwrap();
 
     let resp: Response = serde_json::from_str(buf.trim()).unwrap();
-    assert!(matches!(resp, Response::Ok { .. }), "got {resp:?}");
+    // Stub has no compositor identity: deliver on the clipboard without keys.
+    assert!(matches!(resp, Response::Copied { .. }), "got {resp:?}");
+    assert!(wl.combos().is_empty());
 
     // The EchoLlm output should now be on the regular clipboard via inject.
     let v = wl.read(ClipboardKind::Regular).await.unwrap();

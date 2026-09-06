@@ -11,6 +11,7 @@ pub async fn run() -> anyhow::Result<()> {
             paused,
             busy,
             last_error,
+            last_result,
         } => {
             println!("daemon: {}", if healthy { "running" } else { "unhealthy" });
             println!("provider: {provider}\nmodel: {model}");
@@ -27,6 +28,9 @@ pub async fn run() -> anyhow::Result<()> {
             println!("paused: {paused}\nbusy: {busy}\nmodes: {mode_count}");
             if let Some(error) = last_error {
                 println!("last error: {error}");
+            }
+            if let Some(result) = last_result {
+                println!("last result: {result}");
             }
             Ok(())
         }
