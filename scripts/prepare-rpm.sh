@@ -16,5 +16,5 @@ mkdir -p "$stage/.cargo"
 # Generate portable relative paths inside the source tree, not paths to this temporary directory.
 (cd "$stage" && cargo vendor --locked --versioned-dirs --manifest-path "$OLDPWD/Cargo.toml" vendor > .cargo/config.toml)
 tar --zstd -cf "$output/vendor.tar.zst" -C "$stage" .cargo vendor
-cp packaging/rpm/smarty-pants.spec "$output/"
+cp packaging/rpm/smarty-pants.spec packaging/rpm/smarty-pants.changes "$output/"
 printf 'RPM/OBS sources prepared in %s\n' "$output"

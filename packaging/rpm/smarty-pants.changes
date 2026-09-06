@@ -1,0 +1,6 @@
+-------------------------------------------------------------------
+Sun Sep  6 07:00:00 UTC 2026 - Smarty Pants contributors
+
+- Initial 0.2.0 package with CPU inference, DeepSeek/compatible APIs,
+  tray controls, review/copy delivery, and optional user service.
+- Vendor Cargo dependencies for offline builds and include licenses.

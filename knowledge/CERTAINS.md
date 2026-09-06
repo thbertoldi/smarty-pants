@@ -54,3 +54,16 @@
 - GitHub release automation and an offline RPM/OBS source recipe are included. OBS publication and full Sway/niri desktop testing have not been performed.
 - A Hyprland shortcut compatibility change was present concurrently in the working tree. Review against the current Hyprland dispatcher documentation and 64 API-build tests passed: it tries the Lua dispatcher and only falls back to legacy syntax on an explicit invalid-dispatcher rejection.
 - GitHub's Rust 1.88 API check passed. The first CI run exposed a missing Ubuntu 22.04 glslc package, and the next exposed commas in cache keys; CI now uses Ubuntu 24.04 and named flavor cache keys. Downloadable binary builds remain on Ubuntu 22.04.
+
+## Verified desktop deployment on September 6, 2026
+
+- The installed CLI and daemon use the committed DeepSeek/tray update `923a1eb`; the daemon additionally includes the Lua-compatible Hyprland shortcut patch in `crates/daemon/src/wayland.rs`.
+- The daemon was built with `--locked --no-default-features --features tray`. The existing user systemd unit remains enabled and active, pointing to `~/.cargo/bin/smarty-pants-daemon`.
+- This deployment uses DeepSeek V4 Flash with all four built-in modes, unpaused and without a resident local model. The user entered the API key through the native tray dialog; it is stored outside the repository in a file with mode `0600`.
+- The portal rejected shortcut registration with `An app id is required`. The desktop's Lua bindings now invoke the CLI directly for Super+R/A/I/C, and its user config disables the unused portal shortcut session.
+- Hyprland 0.56 accepts `hl.dsp.send_shortcut({mods, key})`. The compatibility patch uses that API and retries the old dispatcher only after an explicit `Invalid dispatcher` rejection, avoiding duplicate input on other failures.
+- The patch is present in both the isolated deployment worktree and the newer development working tree. The ongoing 0.2.0 changes were not included in this installed build.
+- The deployed source passed 59 tests and strict Clippy with the API-only/tray feature set. The added checks cover successful Lua dispatch, legacy rejection/fallback, and action errors that must not be retried.
+- Two live tests submitted synthetic English and Portuguese PRIMARY selections through the installed CLI and DeepSeek, then verified replacement in a disposable GTK editor via native Hyprland paste. Both preserved names, negation and language while correcting grammar; end-to-end times were 1.30 and 1.72 seconds. These are smoke checks, not a writing-quality benchmark.
+- The four Lua bindings loaded successfully, but physical hotkey presses were not part of those two live checks. The temporary editor was removed; original window focus, pointer position and clipboard-restoration preference were restored after verification.
+- The 0.2.0 RPM recipe built a binary/source RPM with vendored sources, a fresh CARGO_HOME, and Cargo --frozen. Its 61 tests, baseline CMake CPU-flag check, desktop-file validation, and extracted CLI/daemon lifecycle checks passed. The local build used rustup and rpmbuild --nodeps; OBS BuildRequires resolution and clean-machine installation are still unverified.

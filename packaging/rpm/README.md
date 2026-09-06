@@ -31,8 +31,12 @@ A clean OBS build is preferable to inheriting a developer machine's toolchain. C
 
 ## Submit through OBS
 
-Choose an OBS project you own and a current openSUSE Tumbleweed x86_64 build target. Create a `smarty-pants` package in that project, then copy the prepared spec, source archive and vendor archive into its `osc checkout`. Review `osc status` and `osc diff` before `osc addremove` and `osc commit`.
+Choose an OBS project you own and a current openSUSE Tumbleweed x86_64 build target. Create a `smarty-pants` package in that project, then copy the prepared spec, changelog, source archive and vendor archive into its `osc checkout`. Review `osc status` and `osc diff` before `osc addremove` and `osc commit`.
 
 OBS builds the committed spec in an isolated environment. Inspect `osc results` and the complete build log, fix distribution review findings, then publish the project repository through OBS. Do not describe the package as available until the build and repository publication succeed. Publishing an OBS project requires the maintainer's account and project choice; this repository does not include credentials.
 
 For maintained OBS source services, see [openSUSE-Rust/obs-service-cargo](https://github.com/openSUSE-Rust/obs-service-cargo). A service can replace the manual vendoring step later. [Cargo's vendor documentation](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) describes the source replacement mechanism.
+
+## Verification recorded for this recipe
+
+The recipe built a binary and source RPM on the development Tumbleweed host with vendored dependencies and a fresh CARGO_HOME. All 61 tests in that source snapshot passed; the extracted package passed version and daemon-lifecycle checks. The host used rustup, so this local check used `rpmbuild --nodeps` to bypass RPM dependency accounting. It is not evidence that an OBS build target supplies all declared BuildRequires, nor an installation test on a clean machine. OBS validation remains required.
