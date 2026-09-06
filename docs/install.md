@@ -1,5 +1,27 @@
 # Install Smarty Pants
 
+## openSUSE Tumbleweed RPM
+
+For **Tumbleweed x86_64**, use the maintainer's [OBS repository](https://build.opensuse.org/package/show/home:thbertoldi:smarty-pants/smarty-pants):
+
+```sh
+sudo zypper addrepo --refresh \
+  https://download.opensuse.org/repositories/home:/thbertoldi:/smarty-pants/openSUSE_Tumbleweed/ \
+  smarty-pants
+sudo zypper refresh smarty-pants
+sudo zypper install smarty-pants
+```
+
+This is a personal repository, separate from the official openSUSE distribution. The RPM includes **CPU inference, direct APIs, and the tray**. Zypper installs the runtime dependencies; it recommends Zenity for settings/review dialogs. No Rust build, GPU setup, or model download is needed to use DeepSeek.
+
+If your system disables recommended packages, install the dialog tool explicitly with `sudo zypper install zenity`.
+
+Open **Smarty Pants** in your application launcher, then choose **Provider → DeepSeek (cloud)**, **Set API key…**, and an **API model** from the tray. Local Qwen is the fresh-install default, so select DeepSeek before triggering your first rewrite to avoid downloading local weights. [DeepSeek setup and agent handoff](install-deepseek.md).
+
+The RPM installs binaries in `/usr/bin` and a user unit in `/usr/lib/systemd/user`. If migrating from a source or archive installation, inspect `systemctl --user cat smarty-pants.service`: an existing user unit or drop-in may still select `~/.cargo/bin` or `~/.local/bin`. Preserve its custom settings, update `ExecStart` to `/usr/bin/smarty-pants-daemon`, run `systemctl --user daemon-reload`, and restart when idle. Update shortcut paths too; `type -a smarty-pants` identifies older binaries shadowing `/usr/bin`.
+
+Configuration and API keys remain in your XDG directories. Restart a running daemon after package upgrades. See [login startup](#upgrades-and-login-startup) below and the installed `/usr/share/doc/packages/smarty-pants/README.openSUSE`.
+
 ## Downloaded binaries
 
 Release binaries support Linux x86_64 with glibc 2.35 or newer. Check with `uname -m` and `ldd --version`. Hyprland is the primary tested desktop; see [compositor limitations](limitations.md).

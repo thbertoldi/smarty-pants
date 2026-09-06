@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
-# Prepare locked sources for an offline RPM/OBS build. Requires a clean committed checkout.
+# Prepare pinned sources and locked dependencies with the OBS source services.
 set -euo pipefail
-version=$(sed -n 's/^version *= *"\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
+repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 output=${1:-target/rpm-sources}
-if [[ -n $(git status --porcelain --untracked-files=normal) ]]; then
-    echo 'Commit or stash changes before preparing a source release.' >&2
+if [[ -d $output && -n $(ls -A "$output") ]]; then
+    echo 'Choose an empty output directory for the OBS sources.' >&2
     exit 1
 fi
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
-stage=$(mktemp -d)
+stage=$(mktemp -d -t smarty-pants-rpm-XXXXXXXX)
 trap 'rm -rf -- "$stage"' EXIT
-git archive --format=tar.gz --prefix="smarty-pants-$version/" HEAD > "$output/smarty-pants-$version.tar.gz"
-mkdir -p "$stage/.cargo"
-# Generate portable relative paths inside the source tree, not paths to this temporary directory.
-(cd "$stage" && cargo vendor --locked --versioned-dirs --manifest-path "$OLDPWD/Cargo.toml" vendor > .cargo/config.toml)
-tar --zstd -cf "$output/vendor.tar.zst" -C "$stage" .cargo vendor
-cp packaging/rpm/smarty-pants.spec packaging/rpm/smarty-pants.changes "$output/"
+cp "$repo_root"/packaging/rpm/{smarty-pants.spec,smarty-pants.changes,_service,_constraints,README.openSUSE} "$stage/"
+cd "$stage"
+# Use osc's service runner without an OBS account or working-copy metadata.
+# In an osc checkout the equivalent command is: osc service manualrun.
+python3 - <<'PY'
+from pathlib import Path
+from xml.etree import ElementTree
+from osc.obs_scm.serviceinfo import Serviceinfo
+
+services = Serviceinfo()
+services.read(ElementTree.parse('_service').getroot())
+raise SystemExit(services.execute(str(Path.cwd()), callmode='manual'))
+PY
+# Keep only package inputs, not the checkout or intermediate obs_scm exports.
+cp -- smarty-pants.spec smarty-pants.changes _service _constraints README.openSUSE \
+    smarty-pants-*.tar.zst vendor.tar.zst "$output/"
 printf 'RPM/OBS sources prepared in %s\n' "$output"

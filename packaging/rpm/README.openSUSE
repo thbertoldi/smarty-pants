@@ -1,0 +1,72 @@
+Smarty Pants on openSUSE Tumbleweed
+=================================
+
+This package includes local CPU inference, DeepSeek and compatible APIs.
+Model weights download only when a local rewrite is first requested.
+
+Start Smarty Pants from your application launcher, or run:
+
+    /usr/bin/smarty-pants daemon start
+
+Use a Wayland session with a StatusNotifierItem tray host, such as Waybar
+with its tray module enabled. Zenity supplies the settings and review
+dialogs. On a fresh installation, local Qwen inference is the default.
+
+For DeepSeek:
+
+1. Open the tray and select Provider -> DeepSeek (cloud).
+2. Choose Set API key... and enter the key in the local dialog.
+3. Select API model -> DeepSeek V4 Flash, DeepSeek V4 Pro, or Custom model.
+4. Choose Rewrite delivery -> Review, then copy... for the first test.
+
+DeepSeek usage is billed by DeepSeek. Selecting it does not download or
+load local weights. API keys are stored in a separate private file in
+your configuration directory, never in the package or its sources.
+
+Bind a compositor shortcut to:
+
+    /usr/bin/smarty-pants trigger --mode rewrite
+
+Other modes are academic, linkedin and condense. Keep the intended text
+selected when triggering a rewrite. Verify meaning and facts in outputs.
+
+Optional login startup
+---------------------
+
+Quit a manually launched daemon before starting the user service. From
+your graphical session, import WAYLAND_DISPLAY and whichever compositor
+variables apply (HYPRLAND_INSTANCE_SIGNATURE, SWAYSOCK or NIRI_SOCKET):
+
+    systemctl --user import-environment WAYLAND_DISPLAY
+    systemctl --user daemon-reload
+    systemctl --user enable --now smarty-pants.service
+
+The unit follows graphical-session.target. Minimal compositor setups may
+need to activate that target or use their own startup configuration.
+
+After an RPM upgrade, restart an already running daemon to use the new
+binary:
+
+    systemctl --user restart smarty-pants.service
+
+Migrating an existing installation
+---------------------------------
+
+Check `systemctl --user cat smarty-pants.service` and
+`systemctl --user show smarty-pants.service --property=ExecStart` first.
+A unit in ~/.config/systemd/user takes precedence over this package's unit
+and may still point at ~/.cargo/bin or ~/.local/bin. Preserve its settings
+and drop-ins, update ExecStart to /usr/bin/smarty-pants-daemon, reload the
+user manager, and restart when idle. Check shortcut and launcher paths
+for the same precedence issue. Do not run two daemons at once.
+
+User configuration and credentials remain under the XDG configuration
+directory (normally ~/.config/smarty-pants). Never overwrite them with
+the example at /usr/share/smarty-pants/examples/deepseek.toml.
+
+Diagnostics:
+
+    /usr/bin/smarty-pants status
+    journalctl --user -u smarty-pants.service
+
+Online instructions: https://github.com/thbertoldi/smarty-pants

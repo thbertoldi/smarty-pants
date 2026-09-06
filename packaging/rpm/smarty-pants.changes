@@ -1,4 +1,24 @@
 -------------------------------------------------------------------
+Sun Sep  6 21:41:01 UTC 2026 - Thiago Bertoldi <thiago.bertoldi@suse.com>
+
+- Update to 0.2.0+git20260906.8d0f57a:
+  * Embed the pants-with-glasses tray mascot at seven panel sizes
+    and install a matching application launcher icon.
+- Prepare the first Tumbleweed x86_64 OBS package:
+  * Fetch pinned upstream sources and vendor locked dependencies
+    with OBS source services for offline builds.
+  * Use Rust packaging macros for hardening, dependency audit
+    metadata and separate debug information.
+  * Require CMake 3.14 and limit compilation to available memory.
+  * Disable GCC LTO for native objects consumed by Rust's LLVM
+    linker, keeping other distribution hardening flags.
+  * Ship CLI/daemon manual pages and DeepSeek installation and
+    upgrade guidance.
+  * Deduplicate identical license files while keeping all notices.
+  * Integrate the optional systemd user unit with RPM lifecycle
+    macros; preserve user configuration and credentials.
+
+-------------------------------------------------------------------
 Sun Sep  6 07:00:00 UTC 2026 - Smarty Pants contributors
 
 - Initial 0.2.0 package with CPU inference, DeepSeek/compatible APIs,

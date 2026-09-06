@@ -1,0 +1,21 @@
+<services>
+  <service name="obs_scm" mode="manual">
+    <param name="url">https://github.com/thbertoldi/smarty-pants.git</param>
+    <param name="scm">git</param>
+    <param name="revision">8d0f57a6205fcda2e95782b1953178ab874fb0fa</param>
+    <param name="versionformat">0.2.0+git%cd.%h</param>
+    <param name="filename">smarty-pants</param>
+  </service>
+  <service name="tar" mode="manual"/>
+  <service name="recompress" mode="manual">
+    <param name="file">*.tar</param>
+    <param name="compression">zst</param>
+  </service>
+  <service name="cargo_vendor" mode="manual">
+    <param name="src">smarty-pants-0.2.0+git20260906.8d0f57a.tar.zst</param>
+    <param name="compression">zst</param>
+    <!-- Preserve the upstream lockfile validated by CI and cargo audit. -->
+    <param name="update">false</param>
+    <param name="respect-lockfile">true</param>
+  </service>
+</services>

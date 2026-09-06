@@ -6,6 +6,7 @@
 <p align="center">Select text. Choose a tone. Keep writing.</p>
 <p align="center">
   <a href="https://github.com/thbertoldi/smarty-pants/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/thbertoldi/smarty-pants/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://build.opensuse.org/package/show/home:thbertoldi:smarty-pants/smarty-pants"><img alt="OBS build" src="https://build.opensuse.org/projects/home:thbertoldi:smarty-pants/packages/smarty-pants/badge.svg?type=default"></a>
   <a href="https://github.com/thbertoldi/smarty-pants/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/thbertoldi/smarty-pants"></a>
   <a href="LICENSE"><img alt="License: MPL 2.0" src="https://img.shields.io/badge/license-MPL--2.0-blue"></a>
   <img alt="Linux Wayland" src="https://img.shields.io/badge/desktop-Linux%20%2F%20Wayland-7c3aed">
@@ -20,6 +21,20 @@ A tray writing assistant for **English and Portuguese**. Rewrite, condense, or c
 - **Preserve important details:** checks reject changed numbers, links, email addresses, and code literals. These checks do not guarantee that meaning is preserved; [see the measured limitations](docs/limitations.md).
 
 ## Install
+
+**openSUSE Tumbleweed x86_64:** install the RPM from the [maintainer's OBS repository](https://build.opensuse.org/package/show/home:thbertoldi:smarty-pants/smarty-pants):
+
+```sh
+sudo zypper addrepo --refresh \
+  https://download.opensuse.org/repositories/home:/thbertoldi:/smarty-pants/openSUSE_Tumbleweed/ \
+  smarty-pants
+sudo zypper refresh smarty-pants
+sudo zypper install smarty-pants
+```
+
+The RPM includes CPU inference, APIs and tray settings. For DeepSeek, open Smarty Pants and choose **Provider → DeepSeek (cloud)**, then **Set API key…** before your first rewrite. [RPM setup and migration from an existing install →](docs/install.md#opensuse-tumbleweed-rpm)
+
+**Other Linux systems:** use a release archive:
 
 Download a Linux x86_64 archive and its matching `.sha256` file from [Releases](https://github.com/thbertoldi/smarty-pants/releases/latest).
 
@@ -99,7 +114,7 @@ The Rust workspace separates shared configuration/protocol (`core`), desktop/inf
 
 [Contributing and checks](CONTRIBUTING.md) · [RPM / Open Build Service recipe](packaging/rpm/README.md) · [Quality review](docs/quality-review.md) · [Changelog](CHANGELOG.md)
 
-Native packages are the first distribution target because the app integrates with the host clipboard, compositor commands, and session bus. Flatpak would need additional desktop integration work; a container is useful for builds, but inconvenient as the desktop runtime. There is no published OBS repository yet.
+Native packages integrate with the host clipboard, compositor commands, and session bus. The personal OBS repository targets Tumbleweed x86_64; it is separate from official openSUSE packages. Flatpak would need additional desktop integration work; containers are useful for builds and installation checks.
 
 ## Acknowledgments and license
 

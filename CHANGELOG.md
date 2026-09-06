@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Pants-with-glasses tray mascot, embedded at seven panel sizes with a transparent background, and a matching application launcher icon.
+- Tumbleweed RPM packaging with pinned OBS source services, locked dependency vendoring, distribution build flags, debug packages, user-service integration and DeepSeek installation instructions.
 
 ## 0.2.0 — 2026-09-06
 

@@ -1,8 +1,12 @@
 # Install smarty-pants with DeepSeek: instructions for another agent
 
-## Quick path: use a release binary
+## Quick path: RPM on Tumbleweed, release binary elsewhere
 
-For a new installation, follow [the binary installer guide](install.md#downloaded-binaries) and choose the **API** bundle. This skips Rust, C++, Vulkan and model downloads. Open Smarty Pants, select **Provider → DeepSeek**, enter the key through **Set API key…**, and choose **API model → DeepSeek V4 Flash** or **DeepSeek V4 Pro**. Model changes apply immediately and preserve the endpoint and key. Use **Rewrite delivery → Review, then copy…** for the first English/Portuguese checks.
+On a current **openSUSE Tumbleweed x86_64** machine, follow [the RPM installation steps](install.md#opensuse-tumbleweed-rpm). This gives Zypper-managed upgrades and includes both local CPU and API support. Open Smarty Pants, select **Provider → DeepSeek (cloud)** before triggering a rewrite, enter the key through **Set API key…**, and choose **API model → DeepSeek V4 Flash**, **DeepSeek V4 Pro**, or **Custom model…**. API mode downloads no local model. The RPM ships additional instructions at `/usr/share/doc/packages/smarty-pants/README.openSUSE`.
+
+When migrating an existing installation, inspect the service and shortcut paths first. The RPM binaries are in `/usr/bin`; a user-owned service may still select `~/.cargo/bin` or `~/.local/bin`. Preserve custom settings and drop-ins, update `ExecStart` to `/usr/bin/smarty-pants-daemon`, reload the user manager, and restart when idle. Use absolute `/usr/bin/smarty-pants` paths for verification and bindings if an older binary shadows it. Keep configuration and key files intact.
+
+For other supported Linux systems, or an API-only installation, follow [the binary installer guide](install.md#downloaded-binaries) and choose the **API** bundle. This skips Rust, C++, Vulkan and model downloads. Open Smarty Pants, select **Provider → DeepSeek**, enter the key through **Set API key…**, and choose **API model → DeepSeek V4 Flash** or **DeepSeek V4 Pro**. Model changes apply immediately and preserve the endpoint and key. Use **Rewrite delivery → Review, then copy…** for the first English/Portuguese checks.
 
 If upgrading the existing environment described below, inspect the current service first. Release binaries install under `~/.local/bin`; the earlier source installation uses `~/.cargo/bin`. The installer preserves a custom service and writes a `.service.new` suggestion. Update `ExecStart` deliberately and restart the service to run the new binary. Keep user configuration, service drop-ins, and API keys.
 
@@ -24,7 +28,7 @@ These facts were inspected on September 6, 2026; recheck them before acting:
 | OS / desktop | openSUSE Tumbleweed, Hyprland on Wayland |
 | Binaries used by the service | `/home/thbertoldi/.cargo/bin/` |
 | Existing service | `smarty-pants.service`, active under the user's systemd manager |
-| User configuration | `/home/thbertoldi/.config/smarty-pants/config.toml` did not exist |
+| User configuration | `/home/thbertoldi/.config/smarty-pants/config.toml` exists; DeepSeek V4 Flash configured |
 | Tray host | Waybar running; `tray` already enabled in `~/.config/waybar/config.jsonc` |
 | Dialog / clipboard tools | `zenity`, `wtype`, `wl-copy`, `wl-paste` installed |
 | Writing bindings in config files | Super+R rewrite, Super+A academic, Super+I LinkedIn, Super+C condense |
