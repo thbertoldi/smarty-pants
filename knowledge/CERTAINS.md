@@ -67,3 +67,12 @@
 - Two live tests submitted synthetic English and Portuguese PRIMARY selections through the installed CLI and DeepSeek, then verified replacement in a disposable GTK editor via native Hyprland paste. Both preserved names, negation and language while correcting grammar; end-to-end times were 1.30 and 1.72 seconds. These are smoke checks, not a writing-quality benchmark.
 - The four Lua bindings loaded successfully, but physical hotkey presses were not part of those two live checks. The temporary editor was removed; original window focus, pointer position and clipboard-restoration preference were restored after verification.
 - The 0.2.0 RPM recipe built a binary/source RPM with vendored sources, a fresh CARGO_HOME, and Cargo --frozen. Its 61 tests, baseline CMake CPU-flag check, desktop-file validation, and extracted CLI/daemon lifecycle checks passed. The local build used rustup and rpmbuild --nodeps; OBS BuildRequires resolution and clean-machine installation are still unverified.
+
+## Published 0.2.0 verification
+
+- Release v0.2.0 was published from commit fc43fc35a3963493dbdadb34b52e13925afb9778 at https://github.com/thbertoldi/smarty-pants/releases/tag/v0.2.0.
+- CI run 34019430631 passed all jobs: Rust 1.88 API, Rust 1.91.1 CPU and Vulkan, formatting, strict Clippy, 64 tests per configuration, documentation/shell/desktop checks, and the dependency audit.
+- Release run 34019432615 passed both bundle builds, installation and lifecycle checks, then required the successful CI run for the same commit before publication.
+- The final API and CPU archives are approximately 7.8 and 9.2 MiB, excluding separately downloaded model weights. Both contain the release commit in SOURCE and require no glibc symbol newer than 2.34; their documented/tested baseline remains Ubuntu 22.04/glibc 2.35.
+- Both final workflow artifacts passed fresh install, upgrade preservation, uninstall, daemon readiness, repeated launch, private logging, clean shutdown, and invalid-config startup checks in temporary XDG directories on the openSUSE development host.
+- The published archives and SHA-256 files were downloaded from the GitHub release. Their hashes matched both the checksums and the already-tested workflow artifacts.

@@ -33,3 +33,9 @@ Regression tests use in-memory clipboard/focus mocks and a local HTTP server. Th
 [CI](https://github.com/thbertoldi/smarty-pants/actions/workflows/ci.yml) runs formatting, strict Clippy and tests for API, CPU and Vulkan configurations, plus dependency audits and documentation/desktop metadata checks. The API job checks Rust 1.88. Release builds target Ubuntu 22.04 and check llama.cpp's CMake CPU flags: `SOURCE_DATE_EPOCH` disables its optional instruction defaults, in addition to Rust's generic x86_64 target.
 
 The [release workflow](https://github.com/thbertoldi/smarty-pants/actions/workflows/release.yml) provides build and installation evidence for the downloadable assets. The RPM recipe built offline on the development Tumbleweed host using rustup and `rpmbuild --nodeps`; all 61 tests in that snapshot and the extracted binaries’ lifecycle checks passed. A clean OBS build, repository publication, and distro review remain incomplete. Live DeepSeek calls, visual review of the user's desktop panel, and full Sway/niri sessions are outside the automated checks. See [remaining limitations](limitations.md) before treating a rewrite as verified fact.
+
+## Published release evidence
+
+[CI run 34019430631](https://github.com/thbertoldi/smarty-pants/actions/runs/34019430631) passed all jobs, including 64 tests in each API/CPU/Vulkan configuration. [Release run 34019432615](https://github.com/thbertoldi/smarty-pants/actions/runs/34019432615) published [v0.2.0](https://github.com/thbertoldi/smarty-pants/releases/tag/v0.2.0) from `fc43fc35a3963493dbdadb34b52e13925afb9778` after build, installation, lifecycle and CI checks succeeded.
+
+Both final bundles also passed temporary-directory installation and lifecycle checks on the openSUSE development host. Published downloads matched the tested artifacts byte-for-byte and passed their SHA-256 checks. Archive sizes are approximately 7.8 MiB (API) and 9.2 MiB (CPU), excluding model weights.
