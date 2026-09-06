@@ -26,10 +26,10 @@ jobs:
             features: vulkan,tray
             flavor: vulkan
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake libvulkan-dev glslc shellcheck desktop-file-utils
       - run: rustup toolchain install ${{ matrix.rust }} --profile minimal --component rustfmt,clippy && rustup override set ${{ matrix.rust }}
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
@@ -44,7 +44,7 @@ jobs:
   audit:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: rustup toolchain install 1.91.1 --profile minimal && rustup override set 1.91.1
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: cargo audit
